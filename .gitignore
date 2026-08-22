@@ -1,0 +1,23 @@
+# Datos generados por el pipeline (se regeneran con ingest.py)
+data/raw/wholesale_customers_raw.csv
+data/raw/ingestion_metadata.json
+data/processed/*
+!data/processed/.gitkeep
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Modelos serializados
+models/*.pkl
+models/*.joblib
+!models/.gitkeep
+
+# Entorno
+.env
