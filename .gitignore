@@ -22,3 +22,7 @@ models/*.joblib
 # Entorno
 .env
 .vscode/settings.json
+
+# MLflow — artefactos locales de tracking, no código fuente
+mlflow.db
+mlruns/
