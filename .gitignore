@@ -21,3 +21,4 @@ models/*.joblib
 
 # Entorno
 .env
+.vscode/settings.json
