@@ -4,7 +4,8 @@ data/raw/ingestion_metadata.json
 data/processed/*
 !data/processed/.gitkeep
 
-# MLflow
+# MLflow — artefactos locales de tracking, no código fuente
+mlflow.db
 mlruns/
 mlartifacts/
 
@@ -21,4 +22,6 @@ models/*.joblib
 
 # Entorno
 .env
+
+# Editor
 .vscode/settings.json
