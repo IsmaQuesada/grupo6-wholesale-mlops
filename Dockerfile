@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir \
     fastapi>=0.104.0 \
     uvicorn>=0.24.0 \
     pydantic>=2.4.0 \
-    scikit-learn==1.8.0 \
+    scikit-learn==1.9.0 \
     pandas==2.3.3 \
     numpy==2.4.4 \
     joblib==1.5.3

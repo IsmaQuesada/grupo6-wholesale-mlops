@@ -7,7 +7,7 @@ devuelve un error 422 con el detalle, sin que el código del endpoint tenga
 que validarlo manualmente.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ClienteInput(BaseModel):
@@ -27,8 +27,8 @@ class ClienteInput(BaseModel):
     Detergents_Paper: float = Field(..., ge=0, description="Gasto anual en detergentes/papel")
     Delicassen: float = Field(..., ge=0, description="Gasto anual en delicatessen")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "Fresh": 12669,
                 "Milk": 9656,
@@ -38,6 +38,7 @@ class ClienteInput(BaseModel):
                 "Delicassen": 1338,
             }
         }
+    )
 
 
 class PrediccionOutput(BaseModel):

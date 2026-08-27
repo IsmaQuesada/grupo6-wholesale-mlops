@@ -17,6 +17,7 @@ Documentación interactiva (generada automáticamente por FastAPI):
 
 import json
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import joblib
@@ -35,12 +36,6 @@ logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODELS_DIR = REPO_ROOT / "models"
 
-app = FastAPI(
-    title="Wholesale Customers — Clustering API",
-    description="API de inferencia para segmentación de clientes mayoristas (Grupo 6)",
-    version="1.0.0",
-)
-
 # --------------------------------------------------------------------
 # Carga de artefactos al iniciar la aplicación (una sola vez, no por request)
 # --------------------------------------------------------------------
@@ -49,7 +44,6 @@ _feature_builder = None
 _metadata = None
 
 
-@app.on_event("startup")
 def cargar_artefactos():
     global _modelo, _feature_builder, _metadata
 
@@ -78,6 +72,20 @@ def cargar_artefactos():
         "Modelo cargado: %s v%s (silhouette=%.3f)",
         _metadata["model_name"], _metadata["model_version"], _metadata["silhouette"],
     )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    cargar_artefactos()
+    yield
+
+
+app = FastAPI(
+    title="Wholesale Customers — Clustering API",
+    description="API de inferencia para segmentación de clientes mayoristas (Grupo 6)",
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
 
 # --------------------------------------------------------------------
