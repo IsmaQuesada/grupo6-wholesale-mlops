@@ -54,6 +54,9 @@ grupo6-wholesale-mlops/
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
+├── Dockerfile
+├── .dockerignore
+├── mlflow.db                                # generado por train.py/notebook 03 (no versionado)
 │
 ├── data/
 │   ├── raw/
@@ -65,24 +68,38 @@ grupo6-wholesale-mlops/
 │       └── features_metadata.json          # generado por build_features.py (no versionado)
 │
 ├── models/
-│   └── feature_builder.joblib              # generado por build_features.py (no versionado)
+│   ├── kmeans_production.joblib            # generado por train.py en promoción a Production (no versionado)
+│   ├── feature_builder.joblib              # generado por build_features.py / train.py (no versionado)
+│   └── production_metadata.json            # generado por train.py en promoción a Production (no versionado)
 │
 ├── notebooks/
-│   ├── 01_data_quality_diagnostico.ipynb   # ✅ implementado (sección F)
-│   └── 02_eda_feature_engineering.ipynb    # ✅ implementado (secciones H, I)
+│   ├── 01_data_quality_diagnostico.ipynb          # ✅ implementado (sección F)
+│   ├── 02_eda_feature_engineering.ipynb           # ✅ implementado (secciones H, I)
+│   └── 03_modelado_experiment_tracking.ipynb      # ✅ implementado (secciones J, K)
 │
 └── src/
     ├── ingestion/
     │   └── ingest.py                       # ✅ implementado
     ├── data_quality/
     │   └── validate.py                     # ✅ implementado
-    └── features/
-        └── build_features.py               # ✅ implementado
+    ├── features/
+    │   └── build_features.py               # ✅ implementado
+    ├── training/
+    │   └── train.py                        # ✅ implementado (secciones J, K)
+    └── api/
+        ├── main.py                         # ✅ implementado (FastAPI)
+        └── schemas.py                      # ✅ implementado (Pydantic)
+
+tests/
+    ├── conftest.py                         # ✅ implementado (fixtures)
+    ├── test_data.py                        # ✅ implementado (sección N)
+    ├── test_model.py                       # ✅ implementado (sección N)
+    └── test_api.py                         # ✅ implementado (sección N)
 ```
 
 **Próximas carpetas a agregar según se completen esas etapas del
-enunciado:** `src/training/`, `src/monitoring/`, `src/api/`, `tests/`,
-`monitoring_reports/`, `docs/` (más allá de la guía interna ya existente).
+enunciado:** `src/monitoring/`, `monitoring_reports/`,
+`docs/` (más allá de la guía interna ya existente).
 
 ## 5. Installation
 
@@ -170,9 +187,9 @@ notebook de diagnóstico:
 | `cardinalidad_categorica_valida` | Channel ∈ {1,2} y Region ∈ {1,2,3}                                        | sin categorías inesperadas |
 
 Este script está diseñado para ejecutarse tanto de forma independiente
-como importado desde otros scripts del pipeline (`src/training/train.py`,
-próxima entrega), para que la validación ocurra automáticamente antes de
-entrenar, sin depender de que alguien la corra manualmente desde el notebook.
+como importado desde otros scripts del pipeline (`src/training/train.py`),
+para que la validación ocurra automáticamente antes de entrenar, sin
+depender de que alguien la corra manualmente desde el notebook.
 
 ## 8. EDA y Feature Engineering
 
@@ -184,15 +201,15 @@ exige la sección H del enunciado: _¿qué decisión de modelado, limpieza,
 ingeniería de variables o negocio cambia como consecuencia de este
 resultado?_ Los hallazgos principales:
 
-| Hallazgo                                                                                                                    | Decisión                                                                                                 | Se implementa en                                                       |
-| --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Asimetría alto en las 6 variables de gasto (todas > 2, `Delicassen` = 11.15)                                                | Log-transform (log1p)                                                                                    | `FeatureBuilder._log_transform`                                        |
-| Correlación alta entre Grocery, Detergents_Paper y Milk (hasta 0.92) + colinealidad perfecta en las proporciones (Σpct = 1) | PCA con k elegido por varianza acumulada ≥80% (k=5, retiene 85.7%)                                       | `FeatureBuilder(n_pca_components=5)`                                   |
-| Outliers son clientes reales de alto volumen (`Frozen` el más frecuente, 43 casos), no errores                              | No se eliminan; se comprimen con log-transform                                                           | `FeatureBuilder._log_transform`                                        |
-| Colas ya acotadas tras log1p (máx. \|z\| = 6.36 vs 4.54 con RobustScaler)                                                   | StandardScaler; RobustScaler no es necesario                                                             | `FeatureBuilder.scaler`                                                |
-| El perfil de composición del gasto es distinto al volumen total                                                             | Proporciones por categoría + ratio perecederos/no perecederos + índice de diversificación (entropía)     | `_proporciones_gasto`, `_ratio_perecederos`, `_indice_diversificacion` |
-| Preview de clusterabilidad: silhouette más alto en k=2 (0.322), posible riesgo de "redescubrir" Channel                     | Evaluar en training si k=2 aporta valor nuevo o si conviene un k mayor y más informativo para el negocio | `src/training/train.py` (próxima entrega)                              |
-| El enfoque del proyecto pide descubrir estructura sin partir de categorías ya conocidas                                     | No usar Channel/Region como input del clustering; solo validación externa posterior                      | Notebook de evaluación de clusters (próxima entrega)                   |
+| Hallazgo                                                                                                                    | Decisión                                                                                                       | Se implementa en                                                            |
+| --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Asimetría alto en las 6 variables de gasto (todas > 2, `Delicassen` = 11.15)                                                | Log-transform (log1p)                                                                                          | `FeatureBuilder._log_transform`                                             |
+| Correlación alta entre Grocery, Detergents_Paper y Milk (hasta 0.92) + colinealidad perfecta en las proporciones (Σpct = 1) | PCA con k elegido por varianza acumulada ≥80% (k=5, retiene 85.7%)                                             | `FeatureBuilder(n_pca_components=5)`                                        |
+| Outliers son clientes reales de alto volumen (`Frozen` el más frecuente, 43 casos), no errores                              | No se eliminan; se comprimen con log-transform                                                                 | `FeatureBuilder._log_transform`                                             |
+| Colas ya acotadas tras log1p (máx. \|z\| = 6.36 vs 4.54 con RobustScaler)                                                   | StandardScaler; RobustScaler no es necesario                                                                   | `FeatureBuilder.scaler`                                                     |
+| El perfil de composición del gasto es distinto al volumen total                                                             | Proporciones por categoría + ratio perecederos/no perecederos + índice de diversificación (entropía)           | `_proporciones_gasto`, `_ratio_perecederos`, `_indice_diversificacion`      |
+| Preview de clusterabilidad: silhouette más alto en k=2 (0.322), posible riesgo de "redescubrir" Channel                     | Confirmado en training (sección 9): k=3 elegido por aportar valor de negocio adicional pese a menor silhouette | `src/training/train.py` y `notebooks/03_modelado_experiment_tracking.ipynb` |
+| El enfoque del proyecto pide descubrir estructura sin partir de categorías ya conocidas                                     | No usar Channel/Region como input del clustering; solo validación externa posterior                            | Validación externa hecha en el notebook de modelado (sección 9)             |
 
 **Feature Engineering reutilizable:** `src/features/build_features.py`
 
@@ -201,8 +218,8 @@ python src/features/build_features.py     # o: py src/features/build_features.py
 ```
 
 La clase `FeatureBuilder` es la **única fuente de verdad** de las
-transformaciones del proyecto — se importa igual desde el notebook de EDA
-y desde `src/training/train.py` (próxima entrega), evitando el antipatrón
+transformaciones del proyecto — se importa igual desde los notebooks de
+EDA/modelado y desde `src/training/train.py`, evitando el antipatrón
 de tener una lógica de features en el notebook y otra distinta en
 producción (sección I del enunciado). Provee:
 
@@ -226,29 +243,271 @@ producción (sección I del enunciado). Provee:
 
 ## 9. Training
 
-_(pendiente — próxima entrega)_
+**Exploración y comparación de modelos:**
+`notebooks/03_modelado_experiment_tracking.ipynb`
+
+Se compararon **10 configuraciones** (2 algoritmos × k=2 a 6): K-Means y
+Clustering Jerárquico (Agglomerative). K-Means dominó consistentemente en
+silhouette y Davies-Bouldin en los 6 valores de k probados, por lo que la
+comparación final de candidatos se hizo entre **k=2** y **k=3** con K-Means.
+
+**Criterio explícito de selección (sección K):**
+
+| Candidato                 | Silhouette              | Davies-Bouldin | Observación clave                                                                                                                                                           |
+| ------------------------- | ----------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| K-Means k=2               | **0.322** (el más alto) | 1.231          | Cluster dominante es 96% Channel=Horeca — redescubre casi directamente la variable que el proyecto decidió no usar como input                                               |
+| **K-Means k=3 (elegido)** | 0.257 (segundo mejor)   | 1.393          | Introduce un tercer perfil de negocio genuinamente distinto: separa "Horeca fresco-especializado" de "Horeca diversificado", información que Channel por sí solo no captura |
+
+**Se eligió k=3** sobre k=2 pese a su silhouette más bajo, porque aporta
+segmentación de negocio más rica y no se limita a redescubrir una variable
+ya conocida — cumpliendo el enfoque original del proyecto (sección
+"Business Problem"). Ambos candidatos tienen clusters balanceados (sin
+grupos degenerados) y fueron validados cruzando contra `Channel`/`Region`
+como verificación externa, nunca como input del modelo.
+
+**Validación de estabilidad:** antes de promover el modelo, se re-entrenó
+k=3 con una semilla alternativa (123). El silhouette varió de 0.257 a
+0.256 (diferencia de 0.000, muy por debajo del umbral de 0.05 definido),
+confirmando que el resultado es estable y no depende de la inicialización
+aleatoria.
+
+**Reproducción en producción:** `src/training/train.py`
+
+```bash
+python src/training/train.py     # o: py src/training/train.py
+```
+
+Reproduce en código de producción la configuración ganadora decidida en
+el notebook (K-Means, k=3, `K_PCA=5`), sin reimplementar la lógica de
+features (importa `FeatureBuilder`) ni la de calidad de datos (importa
+`validar_calidad_datos`). Cada ejecución:
+
+1. Carga los datos crudos y valida las Data Quality Gates (detiene el
+   pipeline si alguna falla).
+2. Construye las features con `FeatureBuilder`.
+3. Entrena K-Means (k=3) y calcula silhouette, Davies-Bouldin e inertia.
+4. Registra un nuevo run en MLflow con parámetros, métricas y el modelo
+   como artifact.
+5. Valida estabilidad con una semilla alternativa y, si pasa, promueve el
+   modelo a Production en el Model Registry.
 
 ## 10. MLflow
 
-_(pendiente — próxima entrega)_
+**Tracking URI:** SQLite (`mlflow.db`, en la raíz del repo) — se eligió
+sobre el file store por defecto porque el Model Registry (sección K)
+requiere un backend con soporte completo de versiones de modelo.
+
+**Ver la interfaz de MLflow:**
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db
+```
+
+**Cada run registra (mínimo exigido por la sección J):**
+
+| Categoría      | Contenido registrado                                                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Parameters** | `algorithm`, `n_clusters`, `feature_set` (ej. `PCA_5_componentes`), `random_seed`, `data_version` (heredado de `ingestion_metadata.json`)        |
+| **Metrics**    | `silhouette`, `davies_bouldin`, `inertia`; en el run final también `silhouette_semilla_alternativa` y `diferencia_estabilidad`                   |
+| **Artifacts**  | El modelo entrenado (`mlflow.sklearn.log_model`), además de los gráficos de comparación de clusters y perfiles de gasto generados en el notebook |
+
+**Model Registry — ciclo Experiment → Candidate → Validation → Production:**
+
+1. **Experiment:** los 10 runs de comparación (k=2-6 × 2 algoritmos) quedan
+   registrados bajo el experimento `wholesale-clustering-grupo6`.
+2. **Candidate:** el run ganador (K-Means, k=3) se registra con
+   `mlflow.register_model()` y se etiqueta `lifecycle_stage=candidate`.
+3. **Validation:** se re-entrena con una semilla alternativa; si la
+   diferencia de silhouette es menor al umbral (0.05), se etiqueta
+   `lifecycle_stage=validation`.
+4. **Production:** se le asigna el alias `production` con
+   `set_registered_model_alias()` (API moderna de MLflow — se evitó
+   `transition_model_version_stage()` por estar deprecada desde la
+   versión 2.9.0), garantizando que este mecanismo sea idéntico tanto en
+   el notebook de exploración como en `src/training/train.py`.
+
+Este ciclo responde directamente la pregunta que exige la sección J:
+_¿exactamente qué datos, código, features, hiperparámetros y métricas
+produjeron este modelo?_ — toda esa información queda trazada en el run
+registrado bajo el alias `production`.
 
 ## 11. Docker
 
+El modelo se sirve dentro de un contenedor Docker ligero (sección L del
+enunciado). La imagen usa `python:3.11-slim` (~150 MB vs ~900 MB de la
+imagen completa) e instala **solo** las dependencias necesarias para la
+API de inferencia (sin seaborn, matplotlib, jupyter, etc.).
+
+**Construir la imagen:**
+
+```bash
+docker build -t grupo6-mlops .
+```
+
+**Ejecutar el contenedor:**
+
+```bash
+# Lo mínimo necesario (incluye los artefactos del modelo en la imagen)
+docker run -p 8000:8000 grupo6-mlops
+
+# Opcional: montar models/ como volumen para no reconstruir la imagen
+# cuando se re-entrene el modelo
+docker run -p 8000:8000 -v "${PWD}/models:/app/models" grupo6-mlops
+```
+
+**Verificar que funciona:**
+
+```powershell
+# PowerShell
+Invoke-RestMethod -Uri http://localhost:8000/health
+Invoke-RestMethod -Uri http://localhost:8000/predict -Method Post -ContentType "application/json" -Body '{"Fresh": 12669, "Milk": 9656, "Grocery": 7561, "Frozen": 214, "Detergents_Paper": 2674, "Delicassen": 1338}'
+```
+
+**Dockerfile:** incluye un `HEALTHCHECK` que consulta `/health`
+automáticamente cada 30s. Las dependencias están fijadas con versiones
+exactas (no rangos) para garantizar reproduciibilidad — evita el
+problema "en mi computadora sí funciona" por incompatibilidad de
+versiones de scikit-learn al deserializar el modelo con joblib.
+
+**`.dockerignore`:** excluye `venv/`, `data/`, `mlflow.db`, `mlruns/`,
+`mlartifacts/`, `notebooks/`, `.git/` — nada de esto entra a la imagen.
+
+## 12. API de inferencia
+
+API REST construida con **FastAPI** que sirve predicciones de clustering
+(sección M del enunciado). Carga el modelo K-Means y el FeatureBuilder
+desde archivos joblib exportados por `train.py` — **no depende de
+MLflow ni de la base de datos** en tiempo de inferencia.
+
+**Código fuente:** `src/api/main.py` + `src/api/schemas.py`
+
+**Levantar localmente (sin Docker):**
+
+```bash
+python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+**Documentación interactiva (Swagger):** `http://localhost:8000/docs`
+
+**Probar la API (PowerShell):**
+
+```powershell
+# Verificar salud
+Invoke-RestMethod -Uri http://localhost:8000/health
+
+# Predecir cluster para un cliente
+Invoke-RestMethod -Uri http://localhost:8000/predict -Method Post -ContentType "application/json" -Body '{"Fresh": 12669, "Milk": 9656, "Grocery": 7561, "Frozen": 214, "Detergents_Paper": 2674, "Delicassen": 1338}'
+```
+
+### Endpoints
+
+| Método | Ruta       | Descripción                                      |
+| ------ | ---------- | ------------------------------------------------ |
+| `GET`  | `/`        | Información básica de la API                     |
+| `GET`  | `/health`  | Estado del servicio y versión del modelo cargado |
+| `POST` | `/predict` | Predicción de cluster para un cliente nuevo      |
+
+### Formato de request (POST /predict)
+
+El endpoint acepta las 6 categorías de gasto del dataset original.
+`Channel` y `Region` **no se piden** a propósito — el modelo fue
+entrenado sin usarlas como input.
+
+```json
+{
+  "Fresh": 12669,
+  "Milk": 9656,
+  "Grocery": 7561,
+  "Frozen": 214,
+  "Detergents_Paper": 2674,
+  "Delicassen": 1338
+}
+```
+
+### Formato de respuesta
+
+```json
+{
+  "cluster": 1,
+  "distance_to_centroid": 2.1244,
+  "model_version": "5"
+}
+```
+
+Los campos `Channel` y `Region` se completan internamente como `NaN`
+para satisfacer la forma esperada por `FeatureBuilder` — no afectan el
+cálculo del cluster ni la distancia.
+
+### Artefactos cargados al iniciar
+
+| Archivo                           | Origen                                 | Propósito                                 |
+| --------------------------------- | -------------------------------------- | ----------------------------------------- |
+| `models/kmeans_production.joblib` | `train.py` (en promoción a Production) | Modelo K-Means entrenado                  |
+| `models/feature_builder.joblib`   | `train.py` (en promoción a Production) | Transformaciones ajustadas (scaler + PCA) |
+| `models/production_metadata.json` | `train.py` (en promoción a Production) | Versión, métricas, run_id de MLflow       |
+
+**Error si los artefactos no existen:** la API levanta pero retorna
+HTTP 503 en `/predict` hasta que se ejecuten `python src/training/train.py`
+para generar los modelos.
+
+**Ejecutar dentro de Docker:** ver sección 11 (Docker).
+
+## 13. Pruebas
+
+Suite de tests con **pytest** que cubre los tres niveles
+exigidos por la sección N del enunciado: datos, modelo y API.
+
+```bash
+pytest tests/ -v
+```
+
+### Datos (`tests/test_data.py`)
+
+Verifican que el dataset cumple las expectativas del esquema original:
+
+| Test | Qué valida |
+|------|------------|
+| `test_esquema_columnas` | Las 8 columnas esperadas existen |
+| `test_tipos_numericos` | Todas las columnas son numéricas |
+| `test_rango_channel` | Channel ∈ {1, 2} |
+| `test_rango_region` | Region ∈ {1, 2, 3} |
+| `test_sin_nulos` | 0 valores faltantes |
+| `test_sin_gastos_negativos` | Ninguna variable de gasto es negativa |
+| `test_minimo_400_filas` | Al menos 400 registros |
+
+### Modelo (`tests/test_model.py`)
+
+Verifican que el modelo entrenado funciona correctamente:
+
+| Test | Qué valida |
+|------|------------|
+| `test_modelo_carga` | El modelo KMeans se carga de `models/kmeans_production.joblib` |
+| `test_feature_builder_carga` | El FeatureBuilder se carga y está ajustado |
+| `test_input_valido_genera_prediccion` | Input válido → cluster ∈ {0, 1, 2} |
+
+### API (`tests/test_api.py`)
+
+Verifican los endpoints de inferencia con `FastAPI TestClient`:
+
+| Test | Qué valida |
+|------|------------|
+| `test_predict_200` | Request válido → HTTP 200 + schema válido |
+| `test_predict_campos_requeridos` | Campo faltante → HTTP 422 |
+| `test_predict_gasto_negativo` | Gasto negativo → HTTP 422 |
+
+**Prerequisito:** los tests de modelo y API requieren que existan los
+artefactos en `models/` y el CSV en `data/raw/`. Ejecutar primero
+`python src/training/train.py` si no existen.
+
+## 14. Monitoring
+
 _(pendiente — próxima entrega)_
 
-## 12. API
+## 15. Results
 
 _(pendiente — próxima entrega)_
 
-## 13. Monitoring
-
-_(pendiente — próxima entrega)_
-
-## 14. Results
-
-_(pendiente — próxima entrega)_
-
-## 15. Team
+## 16. Team
 
 | Integrantes           |
 | --------------------- |

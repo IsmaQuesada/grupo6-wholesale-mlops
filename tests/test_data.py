@@ -1,0 +1,42 @@
+from src.data_quality.validate import COLS_GASTO
+
+EXPECTED_COLUMNS = [
+    "Channel", "Region", "Fresh", "Milk", "Grocery",
+    "Frozen", "Detergents_Paper", "Delicassen",
+]
+
+
+def test_esquema_columnas(raw_data):
+    """Verifica que existen las 8 columnas esperadas (sin importar orden)."""
+    assert set(raw_data.columns) == set(EXPECTED_COLUMNS)
+
+
+def test_tipos_numericos(raw_data):
+    """Verifica que todas las columnas son numéricas."""
+    for col in EXPECTED_COLUMNS:
+        assert raw_data[col].dtype in ["int64", "float64"], f"{col} no es numérica"
+
+
+def test_rango_channel(raw_data):
+    """Verifica que Channel solo tiene valores 1 o 2."""
+    assert set(raw_data["Channel"].unique()).issubset({1, 2})
+
+
+def test_rango_region(raw_data):
+    """Verifica que Region solo tiene valores 1, 2 o 3."""
+    assert set(raw_data["Region"].unique()).issubset({1, 2, 3})
+
+
+def test_sin_nulos(raw_data):
+    """Verifica que no hay valores nulos."""
+    assert raw_data.isnull().sum().sum() == 0
+
+
+def test_sin_gastos_negativos(raw_data):
+    """Verifica que ningún gasto es negativo."""
+    assert (raw_data[COLS_GASTO] >= 0).all().all()
+
+
+def test_minimo_400_filas(raw_data):
+    """Verifica que hay al menos 400 registros."""
+    assert len(raw_data) >= 400

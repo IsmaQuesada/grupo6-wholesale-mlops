@@ -4,7 +4,8 @@ data/raw/ingestion_metadata.json
 data/processed/*
 !data/processed/.gitkeep
 
-# MLflow
+# MLflow — artefactos locales de tracking, no código fuente
+mlflow.db
 mlruns/
 mlartifacts/
 
@@ -14,11 +15,14 @@ __pycache__/
 .venv/
 venv/
 
-# Modelos serializados
+# Modelos serializados y su metadata (se regeneran con train.py)
 models/*.pkl
 models/*.joblib
+models/*.json
 !models/.gitkeep
 
 # Entorno
 .env
+
+# Editor
 .vscode/settings.json
