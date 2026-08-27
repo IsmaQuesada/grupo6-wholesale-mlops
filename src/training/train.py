@@ -20,6 +20,7 @@ Uso como módulo (desde otro script del pipeline, ej. una API o un job de reentr
 import json
 import logging
 import sys
+import joblib
 from pathlib import Path
 
 import mlflow
@@ -154,6 +155,32 @@ def entrenar_y_registrar() -> dict:
             client.set_model_version_tag(MODEL_NAME, model_version.version, "lifecycle_stage", "production")
             promovido = True
             logger.info("Modelo promovido a Production: %s v%s", MODEL_NAME, model_version.version)
+
+                        # --- Exportación servible (sección M) ---
+            # MLflow gobierna el tracking y el registro de versiones, pero la API
+            # de inferencia carga una copia liviana en joblib, para no depender de
+            # acceso a la base de datos de MLflow dentro del contenedor Docker.
+            models_dir = REPO_ROOT / "models"
+            models_dir.mkdir(parents=True, exist_ok=True)
+
+            joblib.dump(modelo, models_dir / "kmeans_production.joblib")
+            fb.save(models_dir / "feature_builder.joblib")
+
+            production_metadata = {
+                "model_name": MODEL_NAME,
+                "model_version": model_version.version,
+                "run_id": run_id,
+                "algorithm": ALGORITHM,
+                "n_clusters": N_CLUSTERS,
+                "k_pca": K_PCA,
+                "data_version": data_version,
+                "silhouette": silhouette,
+                "davies_bouldin": davies_bouldin,
+            }
+            with open(models_dir / "production_metadata.json", "w", encoding="utf-8") as f:
+                json.dump(production_metadata, f, indent=2, ensure_ascii=False)
+
+            logger.info("Modelo exportado para serving en: %s", models_dir)
         else:
             logger.warning(
                 "Modelo NO promovido a Production (falló validación de estabilidad): %s v%s",
