@@ -89,12 +89,6 @@ grupo6-wholesale-mlops/
     └── api/
         ├── main.py                         # ✅ implementado (FastAPI)
         └── schemas.py                      # ✅ implementado (Pydantic)
-
-tests/
-    ├── conftest.py                         # ✅ implementado (fixtures)
-    ├── test_data.py                        # ✅ implementado (sección N)
-    ├── test_model.py                       # ✅ implementado (sección N)
-    └── test_api.py                         # ✅ implementado (sección N)
 ```
 
 **Próximas carpetas a agregar según se completen esas etapas del
