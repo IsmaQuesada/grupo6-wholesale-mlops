@@ -54,6 +54,8 @@ grupo6-wholesale-mlops/
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
+├── Dockerfile
+├── .dockerignore
 ├── mlflow.db                                # generado por train.py/notebook 03 (no versionado)
 │
 ├── data/
@@ -66,7 +68,9 @@ grupo6-wholesale-mlops/
 │       └── features_metadata.json          # generado por build_features.py (no versionado)
 │
 ├── models/
-│   └── feature_builder.joblib              # generado por build_features.py (no versionado)
+│   ├── kmeans_production.joblib            # generado por train.py en promoción a Production (no versionado)
+│   ├── feature_builder.joblib              # generado por build_features.py / train.py (no versionado)
+│   └── production_metadata.json            # generado por train.py en promoción a Production (no versionado)
 │
 ├── notebooks/
 │   ├── 01_data_quality_diagnostico.ipynb          # ✅ implementado (sección F)
@@ -80,12 +84,15 @@ grupo6-wholesale-mlops/
     │   └── validate.py                     # ✅ implementado
     ├── features/
     │   └── build_features.py               # ✅ implementado
-    └── training/
-        └── train.py                        # ✅ implementado (secciones J, K)
+    ├── training/
+    │   └── train.py                        # ✅ implementado (secciones J, K)
+    └── api/
+        ├── main.py                         # ✅ implementado (FastAPI)
+        └── schemas.py                      # ✅ implementado (Pydantic)
 ```
 
 **Próximas carpetas a agregar según se completen esas etapas del
-enunciado:** `src/monitoring/`, `src/api/`, `tests/`, `monitoring_reports/`,
+enunciado:** `src/monitoring/`, `tests/`, `monitoring_reports/`,
 `docs/` (más allá de la guía interna ya existente).
 
 ## 5. Installation
@@ -320,11 +327,124 @@ registrado bajo el alias `production`.
 
 ## 11. Docker
 
-_(pendiente — próxima entrega)_
+El modelo se sirve dentro de un contenedor Docker ligero (sección L del
+enunciado). La imagen usa `python:3.11-slim` (~150 MB vs ~900 MB de la
+imagen completa) e instala **solo** las dependencias necesarias para la
+API de inferencia (sin seaborn, matplotlib, jupyter, etc.).
 
-## 12. API
+**Construir la imagen:**
 
-_(pendiente — próxima entrega)_
+```bash
+docker build -t grupo6-mlops .
+```
+
+**Ejecutar el contenedor:**
+
+```bash
+# Lo mínimo necesario (incluye los artefactos del modelo en la imagen)
+docker run -p 8000:8000 grupo6-mlops
+
+# Opcional: montar models/ como volumen para no reconstruir la imagen
+# cuando se re-entrene el modelo
+docker run -p 8000:8000 -v "${PWD}/models:/app/models" grupo6-mlops
+```
+
+**Verificar que funciona:**
+
+```powershell
+# PowerShell
+Invoke-RestMethod -Uri http://localhost:8000/health
+Invoke-RestMethod -Uri http://localhost:8000/predict -Method Post -ContentType "application/json" -Body '{"Fresh": 12669, "Milk": 9656, "Grocery": 7561, "Frozen": 214, "Detergents_Paper": 2674, "Delicassen": 1338}'
+```
+
+**Dockerfile:** incluye un `HEALTHCHECK` que consulta `/health`
+automáticamente cada 30s. Las dependencias están fijadas con versiones
+exactas (no rangos) para garantizar reproduciibilidad — evita el
+problema "en mi computadora sí funciona" por incompatibilidad de
+versiones de scikit-learn al deserializar el modelo con joblib.
+
+**`.dockerignore`:** excluye `venv/`, `data/`, `mlflow.db`, `mlruns/`,
+`mlartifacts/`, `notebooks/`, `.git/` — nada de esto entra a la imagen.
+
+## 12. API de inferencia
+
+API REST construida con **FastAPI** que sirve predicciones de clustering
+(sección M del enunciado). Carga el modelo K-Means y el FeatureBuilder
+desde archivos joblib exportados por `train.py` — **no depende de
+MLflow ni de la base de datos** en tiempo de inferencia.
+
+**Código fuente:** `src/api/main.py` + `src/api/schemas.py`
+
+**Levantar localmente (sin Docker):**
+
+```bash
+python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+**Documentación interactiva (Swagger):** `http://localhost:8000/docs`
+
+**Probar la API (PowerShell):**
+
+```powershell
+# Verificar salud
+Invoke-RestMethod -Uri http://localhost:8000/health
+
+# Predecir cluster para un cliente
+Invoke-RestMethod -Uri http://localhost:8000/predict -Method Post -ContentType "application/json" -Body '{"Fresh": 12669, "Milk": 9656, "Grocery": 7561, "Frozen": 214, "Detergents_Paper": 2674, "Delicassen": 1338}'
+```
+
+### Endpoints
+
+| Método | Ruta       | Descripción                                      |
+| ------ | ---------- | ------------------------------------------------ |
+| `GET`  | `/`        | Información básica de la API                     |
+| `GET`  | `/health`  | Estado del servicio y versión del modelo cargado |
+| `POST` | `/predict` | Predicción de cluster para un cliente nuevo      |
+
+### Formato de request (POST /predict)
+
+El endpoint acepta las 6 categorías de gasto del dataset original.
+`Channel` y `Region` **no se piden** a propósito — el modelo fue
+entrenado sin usarlas como input.
+
+```json
+{
+  "Fresh": 12669,
+  "Milk": 9656,
+  "Grocery": 7561,
+  "Frozen": 214,
+  "Detergents_Paper": 2674,
+  "Delicassen": 1338
+}
+```
+
+### Formato de respuesta
+
+```json
+{
+  "cluster": 1,
+  "distance_to_centroid": 2.1244,
+  "model_version": "5"
+}
+```
+
+Los campos `Channel` y `Region` se completan internamente como `NaN`
+para satisfacer la forma esperada por `FeatureBuilder` — no afectan el
+cálculo del cluster ni la distancia.
+
+### Artefactos cargados al iniciar
+
+| Archivo                           | Origen                                 | Propósito                                 |
+| --------------------------------- | -------------------------------------- | ----------------------------------------- |
+| `models/kmeans_production.joblib` | `train.py` (en promoción a Production) | Modelo K-Means entrenado                  |
+| `models/feature_builder.joblib`   | `train.py` (en promoción a Production) | Transformaciones ajustadas (scaler + PCA) |
+| `models/production_metadata.json` | `train.py` (en promoción a Production) | Versión, métricas, run_id de MLflow       |
+
+**Error si los artefactos no existen:** la API levanta pero retorna
+HTTP 503 en `/predict` hasta que se ejecuten `python src/training/train.py`
+para generar los modelos.
+
+**Ejecutar dentro de Docker:** ver sección 11 (Docker).
 
 ## 13. Monitoring
 
