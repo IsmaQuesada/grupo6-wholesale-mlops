@@ -89,10 +89,16 @@ grupo6-wholesale-mlops/
     └── api/
         ├── main.py                         # ✅ implementado (FastAPI)
         └── schemas.py                      # ✅ implementado (Pydantic)
+
+tests/
+    ├── conftest.py                         # ✅ implementado (fixtures)
+    ├── test_data.py                        # ✅ implementado (sección N)
+    ├── test_model.py                       # ✅ implementado (sección N)
+    └── test_api.py                         # ✅ implementado (sección N)
 ```
 
 **Próximas carpetas a agregar según se completen esas etapas del
-enunciado:** `src/monitoring/`, `tests/`, `monitoring_reports/`,
+enunciado:** `src/monitoring/`, `monitoring_reports/`,
 `docs/` (más allá de la guía interna ya existente).
 
 ## 5. Installation
@@ -446,15 +452,62 @@ para generar los modelos.
 
 **Ejecutar dentro de Docker:** ver sección 11 (Docker).
 
-## 13. Monitoring
+## 13. Pruebas
+
+Suite de tests con **pytest** que cubre los tres niveles
+exigidos por la sección N del enunciado: datos, modelo y API.
+
+```bash
+pytest tests/ -v
+```
+
+### Datos (`tests/test_data.py`)
+
+Verifican que el dataset cumple las expectativas del esquema original:
+
+| Test | Qué valida |
+|------|------------|
+| `test_esquema_columnas` | Las 8 columnas esperadas existen |
+| `test_tipos_numericos` | Todas las columnas son numéricas |
+| `test_rango_channel` | Channel ∈ {1, 2} |
+| `test_rango_region` | Region ∈ {1, 2, 3} |
+| `test_sin_nulos` | 0 valores faltantes |
+| `test_sin_gastos_negativos` | Ninguna variable de gasto es negativa |
+| `test_minimo_400_filas` | Al menos 400 registros |
+
+### Modelo (`tests/test_model.py`)
+
+Verifican que el modelo entrenado funciona correctamente:
+
+| Test | Qué valida |
+|------|------------|
+| `test_modelo_carga` | El modelo KMeans se carga de `models/kmeans_production.joblib` |
+| `test_feature_builder_carga` | El FeatureBuilder se carga y está ajustado |
+| `test_input_valido_genera_prediccion` | Input válido → cluster ∈ {0, 1, 2} |
+
+### API (`tests/test_api.py`)
+
+Verifican los endpoints de inferencia con `FastAPI TestClient`:
+
+| Test | Qué valida |
+|------|------------|
+| `test_predict_200` | Request válido → HTTP 200 + schema válido |
+| `test_predict_campos_requeridos` | Campo faltante → HTTP 422 |
+| `test_predict_gasto_negativo` | Gasto negativo → HTTP 422 |
+
+**Prerequisito:** los tests de modelo y API requieren que existan los
+artefactos en `models/` y el CSV en `data/raw/`. Ejecutar primero
+`python src/training/train.py` si no existen.
+
+## 14. Monitoring
 
 _(pendiente — próxima entrega)_
 
-## 14. Results
+## 15. Results
 
 _(pendiente — próxima entrega)_
 
-## 15. Team
+## 16. Team
 
 | Integrantes           |
 | --------------------- |
