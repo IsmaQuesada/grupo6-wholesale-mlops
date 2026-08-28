@@ -42,6 +42,7 @@ RUN pip install --no-cache-dir \
 # entrenamiento — eso vive fuera del contenedor de serving.
 COPY src/api/ ./src/api/
 COPY src/features/ ./src/features/
+COPY src/monitoring/ ./src/monitoring/
 COPY models/ ./models/
 
 # FastAPI/uvicorn escuchará en este puerto dentro del contenedor
