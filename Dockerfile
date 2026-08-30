@@ -27,9 +27,9 @@ COPY requirements.txt .
 # problema de "en mi computadora sí funciona" por incompatibilidad de
 # versiones de scikit-learn al deserializar el modelo con joblib.
 RUN pip install --no-cache-dir \
-    fastapi>=0.104.0 \
-    uvicorn>=0.24.0 \
-    pydantic>=2.4.0 \
+    fastapi==0.141.1 \
+    uvicorn==0.52.4 \
+    pydantic==2.13.4 \
     scikit-learn==1.9.0 \
     pandas==2.3.3 \
     numpy==2.4.4 \

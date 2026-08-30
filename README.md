@@ -32,9 +32,7 @@ descubiertos capturan información más rica que la ya conocida.
 
 ## 3. Architecture
 
-Ver diagrama completo en `docs/architecture.png` y su justificación en
-`docs/architecture.md` (se agregará en una entrega posterior). Arquitectura
-general obligatoria del curso:
+Arquitectura general obligatoria del curso:
 
 ```
 Fuente de datos → Data Ingestion → Raw/Bronze → Data Validation
