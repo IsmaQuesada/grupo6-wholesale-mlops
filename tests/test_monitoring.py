@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
 import pytest
+from pathlib import Path
 
 from src.monitoring.drift import calcular_psi, calcular_psi_dataframe, clasificar_psi
 from src.monitoring.model_monitor import comparar_distribuciones
 from src.monitoring.system_metrics import get_metrics
 
-REPO_ROOT = __import__("pathlib").Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 # ------------------------------------------------------------------

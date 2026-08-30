@@ -19,7 +19,6 @@ Uso como módulo (desde otro script del pipeline, ej. una API o un job de reentr
 
 import json
 import logging
-import sys
 import joblib
 from pathlib import Path
 
@@ -47,7 +46,6 @@ def _repo_root() -> Path:
 
 
 REPO_ROOT = _repo_root()
-sys.path.append(str(REPO_ROOT))
 
 from src.data_quality.validate import validar_calidad_datos
 from src.features.build_features import COLS_GASTO, FeatureBuilder

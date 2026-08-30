@@ -23,6 +23,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.features.build_features import COLS_GASTO
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [data_quality] %(levelname)s: %(message)s",
@@ -38,8 +40,6 @@ UMBRAL_DUPLICADOS = 0.02  # 2% máximo de filas duplicadas
 
 CHANNEL_VALIDOS = {1, 2}
 REGION_VALIDOS = {1, 2, 3}
-
-COLS_GASTO = ["Fresh", "Milk", "Grocery", "Frozen", "Detergents_Paper", "Delicassen"]
 
 COLUMNAS_ESPERADAS = set(COLS_GASTO) | {"Channel", "Region"}
 
