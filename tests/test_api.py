@@ -3,10 +3,14 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 
-client = TestClient(app)
+
+@pytest.fixture
+def client():
+    with TestClient(app) as c:
+        yield c
 
 
-def test_predict_200(sample_request):
+def test_predict_200(client, sample_request):
     """Verifica que un request válido retorna HTTP 200 con schema válido."""
     resp = client.post("/predict", json=sample_request)
     if resp.status_code == 503:
@@ -21,13 +25,13 @@ def test_predict_200(sample_request):
     assert "model_version" in data
 
 
-def test_predict_campos_requeridos():
+def test_predict_campos_requeridos(client):
     """Verifica que campos faltantes retornan HTTP 422 (validation error)."""
     resp = client.post("/predict", json={"Fresh": 12669})
     assert resp.status_code == 422
 
 
-def test_predict_gasto_negativo(sample_request):
+def test_predict_gasto_negativo(client, sample_request):
     """Verifica que gasto negativo retorna HTTP 422."""
     sample_request["Fresh"] = -100
     resp = client.post("/predict", json=sample_request)
@@ -38,7 +42,7 @@ def test_predict_gasto_negativo(sample_request):
 # Tests de endpoints de soporte
 # ------------------------------------------------------------------
 
-def test_health_200():
+def test_health_200(client):
     """GET /health retorna 200 con status 'ok'."""
     resp = client.get("/health")
     assert resp.status_code == 200
@@ -49,7 +53,7 @@ def test_health_200():
     assert isinstance(data["model_loaded"], bool)
 
 
-def test_metrics_200():
+def test_metrics_200(client):
     """GET /metrics retorna 200 con las 6 claves de métricas."""
     resp = client.get("/metrics")
     assert resp.status_code == 200
@@ -59,7 +63,7 @@ def test_metrics_200():
     assert set(data.keys()) == claves
 
 
-def test_root_200():
+def test_root_200(client):
     """GET / retorna 200 con info básica de la API."""
     resp = client.get("/")
     assert resp.status_code == 200
