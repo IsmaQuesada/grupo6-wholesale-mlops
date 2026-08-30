@@ -177,7 +177,7 @@ El notebook investiga, con evidencia y justificación para cada decisión
 python src/data_quality/validate.py     # o: py src/data_quality/validate.py
 ```
 
-Implementa 5 reglas automáticas, cada una con umbral justificado en el
+Implementa 7 reglas automáticas, cada una con umbral justificado en el
 notebook de diagnóstico:
 
 | Regla                            | Qué valida                                                                | Umbral                     |
@@ -185,8 +185,10 @@ notebook de diagnóstico:
 | `min_rows`                       | El dataset no perdió filas significativamente respecto al histórico (440) | ≥ 90% del histórico        |
 | `sin_nulos_obligatorios`         | No hay nulos en columnas de gasto ni en Channel/Region                    | 0 nulos                    |
 | `duplicados_bajo_umbral`         | Proporción de filas duplicadas                                            | < 2%                       |
+| `tipos_numericos_validos`        | Columnas de gasto son numéricas                                           | Todas numéricas            |
 | `sin_gastos_negativos`           | Ninguna variable de gasto tiene valores negativos (dato imposible)        | 0 negativos                |
 | `cardinalidad_categorica_valida` | Channel ∈ {1,2} y Region ∈ {1,2,3}                                        | sin categorías inesperadas |
+| `esquema_sin_columnas_extra`     | No hay columnas fuera del esquema esperado (8 columnas)                   | 0 columnas extra           |
 
 Este script está diseñado para ejecutarse tanto de forma independiente
 como importado desde otros scripts del pipeline (`src/training/train.py`),

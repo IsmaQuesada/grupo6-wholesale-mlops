@@ -156,7 +156,7 @@ def entrenar_y_registrar() -> dict:
             promovido = True
             logger.info("Modelo promovido a Production: %s v%s", MODEL_NAME, model_version.version)
 
-                        # --- Exportación servible (sección M) ---
+            # --- Exportación servible (sección M) ---
             # MLflow gobierna el tracking y el registro de versiones, pero la API
             # de inferencia carga una copia liviana en joblib, para no depender de
             # acceso a la base de datos de MLflow dentro del contenedor Docker.
