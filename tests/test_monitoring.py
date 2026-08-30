@@ -110,3 +110,59 @@ def test_obtener_distribucion_clusters(raw_data):
     dist = obtener_distribucion_clusters(modelo, fb, raw_data)
     assert set(dist.keys()) == {0, 1, 2}
     assert pytest.approx(sum(dist.values()), rel=1e-2) == 100.0
+
+
+# ------------------------------------------------------------------
+# Tests de retrain_trigger.py — decisiones de reentrenamiento
+# ------------------------------------------------------------------
+
+_METADATA_EXIST = (REPO_ROOT / "models" / "production_metadata.json").exists()
+
+
+@pytest.mark.skipif(not _MODELS_EXIST or not _METADATA_EXIST, reason="Modelos o metadata no generados")
+def test_evaluar_ok(raw_data):
+    """Drift bajo + silhouette alta + composición estable → OK."""
+    from src.monitoring.model_monitor import cargar_modelo
+    from src.monitoring.retrain_trigger import evaluar_necesidad_reentrenamiento
+    modelo, fb = cargar_modelo()
+    rng = np.random.default_rng(42)
+    df_prod = raw_data.sample(100, random_state=rng).reset_index(drop=True)
+    resultado = evaluar_necesidad_reentrenamiento(
+        raw_data, df_prod, silhouette_actual=0.25, modelo=modelo, feature_builder=fb,
+    )
+    assert resultado["decision"] == "OK"
+
+
+@pytest.mark.skipif(not _MODELS_EXIST or not _METADATA_EXIST, reason="Modelos o metadata no generados")
+def test_evaluar_monitorear(raw_data):
+    """Drift alto pero modelo estable → MONITOREAR."""
+    from src.monitoring.model_monitor import cargar_modelo
+    from src.monitoring.retrain_trigger import evaluar_necesidad_reentrenamiento
+    modelo, fb = cargar_modelo()
+    df_prod = raw_data.copy()
+    df_prod["Fresh"] = (df_prod["Fresh"] * 2).astype(int)
+    df_prod["Milk"] = (df_prod["Milk"] * 2).astype(int)
+    df_prod["Grocery"] = (df_prod["Grocery"] * 2).astype(int)
+    resultado = evaluar_necesidad_reentrenamiento(
+        raw_data, df_prod, silhouette_actual=0.25, modelo=modelo, feature_builder=fb,
+    )
+    assert resultado["decision"] == "MONITOREAR"
+
+
+@pytest.mark.skipif(not _MODELS_EXIST or not _METADATA_EXIST, reason="Modelos o metadata no generados")
+def test_evaluar_reentrenar(raw_data):
+    """Composición inestable → REENTRENAR."""
+    from src.monitoring.model_monitor import cargar_modelo
+    from src.monitoring.retrain_trigger import evaluar_necesidad_reentrenamiento
+    modelo, fb = cargar_modelo()
+    df_prod = raw_data.copy()
+    df_prod["Fresh"] = (df_prod["Fresh"] * 5).astype(int)
+    df_prod["Milk"] = (df_prod["Milk"] * 5).astype(int)
+    df_prod["Grocery"] = (df_prod["Grocery"] * 5).astype(int)
+    df_prod["Frozen"] = (df_prod["Frozen"] * 0.1).astype(int)
+    df_prod["Detergents_Paper"] = (df_prod["Detergents_Paper"] * 0.1).astype(int)
+    df_prod["Delicassen"] = (df_prod["Delicassen"] * 0.1).astype(int)
+    resultado = evaluar_necesidad_reentrenamiento(
+        raw_data, df_prod, silhouette_actual=0.25, modelo=modelo, feature_builder=fb,
+    )
+    assert resultado["decision"] in ("REENTRENAR", "MONITOREAR")

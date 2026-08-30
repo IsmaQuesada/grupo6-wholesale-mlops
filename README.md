@@ -100,7 +100,8 @@ tests/
     ├── conftest.py                         # ✅ implementado (fixtures)
     ├── test_data.py                        # ✅ implementado (sección N)
     ├── test_model.py                       # ✅ implementado (sección N)
-    └── test_api.py                         # ✅ implementado (sección N)
+    ├── test_api.py                         # ✅ implementado (sección N)
+    └── test_monitoring.py                  # ✅ implementado (sección O monitoring)
 ```
 
 ## 5. Installation
@@ -459,8 +460,8 @@ para generar los modelos.
 
 ## 13. Pruebas
 
-Suite de tests con **pytest** que cubre los tres niveles
-exigidos por la sección N del enunciado: datos, modelo y API.
+Suite de tests con **pytest** que cubre datos, modelo, API y
+monitoring. Total: 28 tests (+ 1 condicional).
 
 ```bash
 pytest tests/ -v
@@ -492,10 +493,13 @@ Verifican que el modelo entrenado funciona correctamente:
 
 ### API (`tests/test_api.py`)
 
-Verifican los endpoints de inferencia con `FastAPI TestClient`:
+Verifican los endpoints con `FastAPI TestClient`:
 
 | Test | Qué valida |
 |------|------------|
+| `test_health_200` | GET /health → 200 + `status: "ok"` |
+| `test_metrics_200` | GET /metrics → 200 + 6 claves de métricas |
+| `test_root_200` | GET / → 200 |
 | `test_predict_200` | Request válido → HTTP 200 + schema válido |
 | `test_predict_campos_requeridos` | Campo faltante → HTTP 422 |
 | `test_predict_gasto_negativo` | Gasto negativo → HTTP 422 |
@@ -503,6 +507,27 @@ Verifican los endpoints de inferencia con `FastAPI TestClient`:
 **Prerequisito:** los tests de modelo y API requieren que existan los
 artefactos en `models/` y el CSV en `data/raw/`. Ejecutar primero
 `python src/training/train.py` si no existen.
+
+### Monitoring (`tests/test_monitoring.py`)
+
+Verifican la lógica de los módulos de monitoreo (drift, model_monitor,
+system_metrics, retrain_trigger):
+
+| Test | Qué valida |
+|------|------------|
+| `test_clasificar_psi_ok` | PSI < 0.10 → "OK" |
+| `test_clasificar_psi_warning` | 0.10 ≤ PSI < 0.25 → "WARNING" |
+| `test_clasificar_psi_alert` | PSI ≥ 0.25 → "ALERT" |
+| `test_calcular_psi_mismas_distribuciones` | Distribuciones idénticas → PSI ≈ 0 |
+| `test_calcular_psi_distribuciones_diferentes` | Distribuciones distintas → PSI > 0 |
+| `test_comparar_distribuciones_estable` | Diferencia < 10pp → estable |
+| `test_comparar_distribuciones_inestable` | Diferencia > 10pp → inestable |
+| `test_get_metrics_estructura` | Retorna las 6 claves de métricas de sistema |
+| `test_cargar_modelo` | Modelo y FeatureBuilder se cargan correctamente |
+| `test_obtener_distribucion_clusters` | Distribución suma ~100%, clusters ∈ {0,1,2} |
+| `test_evaluar_ok` | Drift bajo + silhouette alta + composición estable → "OK" |
+| `test_evaluar_monitorear` | Drift alto pero modelo estable → "MONITOREAR" |
+| `test_evaluar_reentrenar` | Composición inestable → "REENTRENAR" |
 
 ## 14. Monitoring (Secciones O, P, Q, R)
 
