@@ -7,6 +7,7 @@ data/processed/*
 # MLflow — artefactos locales de tracking, no código fuente
 mlflow.db
 mlruns/
+notebooks/mlruns/
 mlartifacts/
 
 # Python

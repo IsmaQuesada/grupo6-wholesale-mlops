@@ -17,15 +17,17 @@ Documentación interactiva (generada automáticamente por FastAPI):
 
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 
 from src.api.schemas import ClienteInput, HealthOutput, PrediccionOutput
+from src.monitoring.system_metrics import get_metrics, record_request
 
 logging.basicConfig(
     level=logging.INFO,
@@ -87,6 +89,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+@app.middleware("http")
+async def medir_latencia(request: Request, call_next):
+    """Envuelve cada request para alimentar las métricas de la Sección O1."""
+    inicio = time.time()
+    response = await call_next(request)
+    duracion = time.time() - inicio
+    record_request(duracion, is_error=response.status_code >= 400)
+    return response
+
 
 # --------------------------------------------------------------------
 # Endpoints
@@ -100,6 +111,10 @@ def health():
         model_loaded=_modelo is not None,
     )
 
+@app.get("/metrics")
+def metrics():
+    """Métricas de sistema (Sección O1): latency, throughput, error rate, availability."""
+    return get_metrics()
 
 @app.post("/predict", response_model=PrediccionOutput)
 def predict(cliente: ClienteInput):
