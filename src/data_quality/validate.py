@@ -23,6 +23,9 @@ from pathlib import Path
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from src.features.build_features import COLS_GASTO
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [data_quality] %(levelname)s: %(message)s",
@@ -39,7 +42,7 @@ UMBRAL_DUPLICADOS = 0.02  # 2% máximo de filas duplicadas
 CHANNEL_VALIDOS = {1, 2}
 REGION_VALIDOS = {1, 2, 3}
 
-COLS_GASTO = ["Fresh", "Milk", "Grocery", "Frozen", "Detergents_Paper", "Delicassen"]
+COLUMNAS_ESPERADAS = set(COLS_GASTO) | {"Channel", "Region"}
 
 
 def validar_calidad_datos(data: pd.DataFrame, cols_gasto: list = None) -> dict:
@@ -80,19 +83,44 @@ def validar_calidad_datos(data: pd.DataFrame, cols_gasto: list = None) -> dict:
         "detalle": f"{prop_duplicados:.2%} de filas duplicadas (umbral: {UMBRAL_DUPLICADOS:.0%})",
     }
 
-    # Regla 4: sin gastos negativos (dato imposible para este negocio)
-    negativos = (data[cols_gasto] < 0).sum().sum()
+    # Regla 4: tipos numéricos válidos — se evalúa ANTES de cualquier comparación
+    # aritmética (Regla 5), porque una columna de gasto con datos no numéricos
+    # (ej. un string) haría fallar esa comparación y detendría todo el proceso.
+    columnas_no_numericas = [c for c in cols_gasto if not pd.api.types.is_numeric_dtype(data[c])]
+    resultados["tipos_numericos_validos"] = {
+        "pass": len(columnas_no_numericas) == 0,
+        "detalle": (
+            f"Columnas con tipo no numérico: {columnas_no_numericas}"
+            if columnas_no_numericas else "Todas las columnas de gasto son numéricas"
+        ),
+    }
+
+    # Regla 5: sin gastos negativos — solo se evalúa sobre columnas ya confirmadas
+    # numéricas por la Regla 4; una columna con tipo inválido queda excluida aquí
+    # para no volver a intentar una comparación que rompería el pipeline.
+    cols_gasto_numericas = [c for c in cols_gasto if c not in columnas_no_numericas]
+    negativos = (data[cols_gasto_numericas] < 0).sum().sum() if cols_gasto_numericas else 0
     resultados["sin_gastos_negativos"] = {
         "pass": negativos == 0,
         "detalle": f"{negativos} valores negativos en variables de gasto",
     }
 
-    # Regla 5: cardinalidad categórica válida (Channel/Region dentro de lo esperado)
+    # Regla 6: cardinalidad categórica válida (Channel/Region dentro de lo esperado)
     channel_valido = set(data["Channel"].unique()).issubset(CHANNEL_VALIDOS)
     region_valida = set(data["Region"].unique()).issubset(REGION_VALIDOS)
     resultados["cardinalidad_categorica_valida"] = {
         "pass": channel_valido and region_valida,
         "detalle": f"Channel válido: {channel_valido}, Region válido: {region_valida}",
+    }
+
+    # Regla 7: esquema sin columnas inesperadas (detecta modificaciones de esquema en el batch)
+    columnas_extra = set(data.columns) - COLUMNAS_ESPERADAS
+    resultados["esquema_sin_columnas_extra"] = {
+        "pass": len(columnas_extra) == 0,
+        "detalle": (
+            f"Columnas inesperadas: {sorted(columnas_extra)}"
+            if columnas_extra else "Sin columnas fuera del esquema esperado"
+        ),
     }
 
     return resultados

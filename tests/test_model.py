@@ -1,9 +1,10 @@
 import joblib
 import pandas as pd
+from pathlib import Path
 
 from src.features.build_features import FeatureBuilder
 
-REPO_ROOT = __import__("pathlib").Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_modelo_carga():

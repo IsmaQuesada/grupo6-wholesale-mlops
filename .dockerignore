@@ -1,0 +1,37 @@
+# No se necesita nada de esto dentro del contenedor de la API —
+# reduce el contexto de build y el tamaño final de la imagen.
+
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Notebooks y análisis exploratorio (no se sirven en producción)
+notebooks/
+
+# Datos crudos y procesados (la API solo usa los artefactos ya
+# entrenados en models/, no necesita el dataset completo)
+data/
+
+# MLflow local (tracking, no se necesita dentro del contenedor de serving)
+mlflow.db
+mlruns/
+mlartifacts/
+
+# Control de versiones y configuración de editor
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Código de etapas que no corren dentro de este contenedor
+src/ingestion/
+src/data_quality/
+src/training/
+
+# Documentación (no afecta el funcionamiento del contenedor)
+docs/
+README.md
+
+# Tests (se corren fuera del contenedor, en CI o localmente)
+tests/
