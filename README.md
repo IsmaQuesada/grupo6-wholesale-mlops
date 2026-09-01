@@ -714,7 +714,67 @@ y no redundante con el silhouette.
 
 ## 15. Results
 
-_(pendiente — próxima entrega)_
+### 15.1 Métricas del Modelo en Producción
+
+| Métrica | Valor | Interpretación |
+|---------|-------|----------------|
+| **Silhouette Score** | 0.2566 | Separación moderada entre clusters |
+| **Davies-Bouldin Index** | 1.4325 | Índice aceptable (menor = mejor) |
+| **Inertia** | 2841.48 | Cohesión intra-cluster |
+| **Estabilidad (diff semilla)** | 0.0002 | Muy estable (umbral: 0.05) |
+
+### 15.2 Comparación de Configuraciones
+
+Se evaluaron 10 configuraciones (KMeans y Agglomerative Clustering, k=2 a k=6). KMeans domina en todas las métricas para cada valor de k.
+
+| Algoritmo | k | Silhouette | Davies-Bouldin |
+|-----------|---|------------|----------------|
+| KMeans | 2 | 0.3224 | 1.2315 |
+| **KMeans** | **3** | **0.2566** | **1.4325** |
+| KMeans | 4 | 0.2320 | 1.4155 |
+| KMeans | 5 | 0.2344 | 1.3935 |
+| KMeans | 6 | 0.2334 | 1.3506 |
+
+**Selección de k=3:** Aunque k=2 tenía el mejor silhouette (0.322), su cluster dominante era 96% Channel=Horeca — básicamente redescubría una variable conocida. k=3 revela un perfil de negocio genuinamente nuevo (HoreCa diversificado) sin ser redundante con Channel.
+
+### 15.3 Perfiles de Clusters (Datos Originales, Promedio)
+
+| Cluster | Fresh | Milk | Grocery | Frozen | Detergents_Paper | Delicassen | Perfil |
+|---------|-------|------|---------|--------|------------------|------------|--------|
+| **0** | **19,515** | 2,057 | 2,632 | 3,030 | 420 | 763 | HoReCa Fresh |
+| **1** | 6,221 | **9,596** | **14,870** | 1,266 | **6,550** | 1,283 | Retail/Abarrotes |
+| **2** | 11,604 | 4,890 | 4,855 | **5,269** | 891 | **2,554** | HoReCa Diversificado |
+
+**Interpretación de negocio:**
+- **Cluster 0 (HoReCa Fresh — 30.7%):** Clientes con gasto extremadamente alto en Fresh (19,515) y bajo en todo lo demás. Restaurantes y hoteles especializados en alimentos frescos.
+- **Cluster 1 (Retail/Abarrotes — 37.7%):** Dominado por Milk (9,596), Grocery (14,870) y Detergents_Paper (6,550). Tiendas de abarrotes y supermercados.
+- **Cluster 2 (HoReCa Diversificado — 31.6%):** Fresh moderado, pero el gasto más alto en Frozen (5,269) y Delicassen (2,554). Restaurantes con menú diversificado que incluye congelados y delicatessen.
+
+### 15.4 Validación Externas
+
+**Cluster vs Channel:**
+
+| Cluster | Channel=1 (Horeca) | Channel=2 (Retail) |
+|---------|-------------------|-------------------|
+| 0 | **97%** | 3% |
+| 1 | 27% | **73%** |
+| 2 | **88%** | 12% |
+
+Los clusters 0 y 2 son ambos dominados por Horeca, pero representan dos perfiles de compra genuinamente distintos que Channel solo no captura: el especializado en fresco vs. el diversificado.
+
+**Cluster vs Region:** Sin poder discriminatorio — todos los clusters son ~70% Region 3.
+
+### 15.5 Análisis de Componentes Principales
+
+5 componentes retienen el **85.7%** de la varianza:
+
+| Componente | Varianza | Acumulada |
+|------------|----------|-----------|
+| PC1 | 41.8% | 41.8% |
+| PC2 | 16.3% | 58.2% |
+| PC3 | 12.1% | 70.3% |
+| PC4 | 9.2% | 79.5% |
+| PC5 | 6.2% | **85.7%** |
 
 ## 16. Team
 
