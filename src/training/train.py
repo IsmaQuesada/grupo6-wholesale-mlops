@@ -20,6 +20,7 @@ Uso como módulo (desde otro script del pipeline, ej. una API o un job de reentr
 import json
 import logging
 import sys
+import tempfile
 import joblib
 from pathlib import Path
 
@@ -119,6 +120,15 @@ def entrenar_y_registrar() -> dict:
         mlflow.log_metric("davies_bouldin", davies_bouldin)
         mlflow.log_metric("inertia", modelo.inertia_)
         mlflow.sklearn.log_model(modelo, "model")
+
+        # FeatureBuilder también se loguea como artifact de este run (no solo
+        # se exporta a models/ al promover), para que cualquier run del
+        # historial —no solo el promovido a Production— sea reproducible
+        # directamente desde MLflow, sin depender de la copia local en disco.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir) / "feature_builder.joblib"
+            fb.save(tmp_path)
+            mlflow.log_artifact(str(tmp_path), artifact_path="feature_builder")
 
         run_id = mlflow.active_run().info.run_id
         logger.info(
