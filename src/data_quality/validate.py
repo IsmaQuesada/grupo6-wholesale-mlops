@@ -24,6 +24,9 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from src.features.build_features import COLS_GASTO
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [data_quality] %(levelname)s: %(message)s",
@@ -42,7 +45,7 @@ ALERTS_LOG_PATH = REPO_ROOT / "logs" / "quality_alerts.log"
 CHANNEL_VALIDOS = {1, 2}
 REGION_VALIDOS = {1, 2, 3}
 
-COLS_GASTO = ["Fresh", "Milk", "Grocery", "Frozen", "Detergents_Paper", "Delicassen"]
+COLUMNAS_ESPERADAS = set(COLS_GASTO) | {"Channel", "Region"}
 
 COLUMNAS_ESPERADAS = set(COLS_GASTO) | {"Channel", "Region"}
 

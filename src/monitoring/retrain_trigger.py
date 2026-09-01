@@ -19,11 +19,11 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.features.build_features import COLS_GASTO
 from src.monitoring.drift import calcular_psi_dataframe
 from src.monitoring.model_monitor import comparar_distribuciones, obtener_distribucion_clusters
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COLS_GASTO = ["Fresh", "Milk", "Grocery", "Frozen", "Detergents_Paper", "Delicassen"]
 
 UMBRAL_PSI = 0.25  # mismo umbral ALERT usado en la Sección P
 RATIO_SILHOUETTE_MINIMO = 0.70  # tolera hasta 30% de caída respecto a la línea base
