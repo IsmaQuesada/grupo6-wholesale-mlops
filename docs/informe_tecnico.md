@@ -1,4 +1,4 @@
-# Informe Técnico — Segmentación de Clientes Mayoristas
+﻿# Informe Técnico — Segmentación de Clientes Mayoristas
 
 **Proyecto:** MLOps End-to-End: Del dato crudo a un sistema de ML en producción
 **Grupo:** 6 — Clustering (Wholesale Customers)
@@ -137,7 +137,9 @@ Aunque k=2 tenía el mejor silhouette (0.322), su cluster dominante era 96% Chan
 
 - **Backend:** SQLite (`mlflow.db` en raíz del repo)
 - **Experimento:** `wholesale-clustering-grupo6`
-- **Runs registrados:**2 (ambos con métricas idénticas, consistencia verificada)
+- **Runs registrados:** Múltiples durante el desarrollo del equipo (cada integrante experimentó con configuraciones en su entorno local)
+
+> **Nota sobre tracking descentralizado:** Debido a la falta de infraestructura centralizada (servidor MLflow self-hosted o cloud), cada integrante ejecutó MLflow en su máquina local. La base de datos SQLite (`mlflow.db`) reside en `.gitignore` y no se comparte entre copias del repositorio. Como consecuencia, cada entorno de desarrollo mantiene su propio historial de runs, generando disparidad en el número de experimentos registrados. En un entorno de producción se utilizaría un MLflow Tracking Server centralizado.
 
 **Parámetros por run:**
 | Parámetro | Valor |
@@ -297,6 +299,7 @@ Suite de51 tests (46 incondicionales + 5 condicionales):
 - Dataset pequeño (440 filas) — resultados en datasets mayores podrían variar
 - Silhouette moderado (0.257) — inherente a la naturaleza del problema (solapamiento entre perfiles)
 - Monitoreo en memoria — para producción se recomienda persistencia (Redis, time-series DB)
+- Tracking MLflow descentralizado — Sin servidor central o infraestructura cloud, cada integrante registró runs de forma independiente en su entorno local, generando disparidad en el número de experimentos entre los colaboradores. En producción se utilizaría un MLflow Tracking Server centralizado (self-hosted o cloud).
 
 ### Trabajos Futuros
 - Probar algoritmos de clustering más avanzados (DBSCAN, Gaussian Mixture)
