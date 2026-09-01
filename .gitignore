@@ -8,6 +8,7 @@ data/processed/*
 mlflow.db
 mlruns/
 mlartifacts/
+logs/
 
 # Python
 __pycache__/

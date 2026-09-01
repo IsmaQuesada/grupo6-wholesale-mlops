@@ -20,6 +20,7 @@ Uso como módulo (desde train.py u otro script del pipeline):
 import logging
 import sys
 from pathlib import Path
+from datetime import datetime, timezone
 
 import pandas as pd
 
@@ -35,6 +36,8 @@ logger = logging.getLogger(__name__)
 N_FILAS_HISTORICO = 440  # tamaño del dataset original en UCI ML Repository
 TOLERANCIA_MIN_FILAS = 0.9  # se acepta hasta un 10% menos que el histórico
 UMBRAL_DUPLICADOS = 0.02  # 2% máximo de filas duplicadas
+REPO_ROOT = Path(__file__).resolve().parents[2]
+ALERTS_LOG_PATH = REPO_ROOT / "logs" / "quality_alerts.log"
 
 CHANNEL_VALIDOS = {1, 2}
 REGION_VALIDOS = {1, 2, 3}
@@ -138,6 +141,28 @@ def imprimir_reporte(reporte: dict) -> bool:
         logger.error("Resultado global: FAIL ❌ — revisar reglas marcadas arriba.")
     return todas_pasaron
 
+def emitir_alerta(reporte: dict, origen: str = "validate.py") -> None:
+    """
+    Registra las reglas que fallaron en un log de alertas persistente
+    (logs/quality_alerts.log), separado del log operativo normal, para que
+    un incidente de calidad quede identificable sin revisar la salida
+    completa de una corrida. Implementa el paso "Registra" del ciclo
+    Detecta -> Bloquea/Advierte -> Registra exigido en la Sección Q.
+    """
+    fallas = {regla: r["detalle"] for regla, r in reporte.items() if not r["pass"]}
+    if not fallas:
+        return
+
+    ALERTS_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).isoformat()
+
+    with open(ALERTS_LOG_PATH, "a", encoding="utf-8") as f:
+        f.write(f"[{timestamp}] ALERTA ({origen}) — {len(fallas)} regla(s) fallaron:\n")
+        for regla, detalle in fallas.items():
+            f.write(f"  - {regla}: {detalle}\n")
+
+    for regla, detalle in fallas.items():
+        logger.error("ALERTA | %s: %s", regla, detalle)
 
 if __name__ == "__main__":
     RAW_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
@@ -153,6 +178,7 @@ if __name__ == "__main__":
     df = pd.read_csv(CSV_PATH)
     reporte = validar_calidad_datos(df, COLS_GASTO)
     ok = imprimir_reporte(reporte)
+    emitir_alerta(reporte)
 
     if not ok:
         sys.exit(1)  # detiene el pipeline si alguna gate crítica falla
