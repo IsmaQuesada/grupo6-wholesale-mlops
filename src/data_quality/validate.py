@@ -47,8 +47,6 @@ REGION_VALIDOS = {1, 2, 3}
 
 COLUMNAS_ESPERADAS = set(COLS_GASTO) | {"Channel", "Region"}
 
-COLUMNAS_ESPERADAS = set(COLS_GASTO) | {"Channel", "Region"}
-
 
 def validar_calidad_datos(data: pd.DataFrame, cols_gasto: list = None) -> dict:
     """

@@ -89,7 +89,8 @@ grupo6-wholesale-mlops/
     │   ├── system_metrics.py               # O1: latency, throughput, error rate, availability
     │   ├── drift.py                        # O2: PSI (Population Stability Index)
     │   ├── model_monitor.py                # O3: distribución y estabilidad de clusters
-    │   └── retrain_trigger.py              # R: lógica de decisión de reentrenamiento
+    │   ├── retrain_trigger.py              # R: lógica de decisión de reentrenamiento
+    │   └── run_monitoring.py               # Script ejecutable de monitoreo (O1+O2+O3+R)
     └── api/
         ├── main.py                         # ✅ implementado (FastAPI + middleware métricas)
         └── schemas.py                      # ✅ implementado (Pydantic)
@@ -289,8 +290,8 @@ features (importa `FeatureBuilder`) ni la de calidad de datos (importa
    pipeline si alguna falla).
 2. Construye las features con `FeatureBuilder`.
 3. Entrena K-Means (k=3) y calcula silhouette, Davies-Bouldin e inertia.
-4. Registra un nuevo run en MLflow con parámetros, métricas y el modelo
-   como artifact.
+4. Registra un nuevo run en MLflow con parámetros, métricas, el modelo
+   como artifact y un scatter plot de clusters.
 5. Valida estabilidad con una semilla alternativa y, si pasa, promueve el
    modelo a Production en el Model Registry.
 
@@ -312,7 +313,7 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Parameters** | `algorithm`, `n_clusters`, `feature_set` (ej. `PCA_5_componentes`), `random_seed`, `data_version` (heredado de `ingestion_metadata.json`)        |
 | **Metrics**    | `silhouette`, `davies_bouldin`, `inertia`; en el run final también `silhouette_semilla_alternativa` y `diferencia_estabilidad`                   |
-| **Artifacts**  | El modelo entrenado (`mlflow.sklearn.log_model`), además de los gráficos de comparación de clusters y perfiles de gasto generados en el notebook |
+| **Artifacts**  | El modelo entrenado (`mlflow.sklearn.log_model`), scatter plot de clusters (desde `train.py`), y gráficos de comparación de clusters y perfiles de gasto generados en el notebook |
 
 **Model Registry — ciclo Experiment → Candidate → Validation → Production:**
 
@@ -459,7 +460,7 @@ para generar los modelos.
 ## 13. Pruebas
 
 Suite de tests con **pytest** que cubre datos, modelo, API y
-monitoring. Total: 28 tests (+ 1 condicional).
+monitoring. Total: 46 tests incondicionales (+ 5 condicionales que requieren modelos generados).
 
 ```bash
 pytest tests/ -v
