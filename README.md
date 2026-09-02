@@ -44,64 +44,71 @@ Fuente de datos → Data Ingestion → Raw/Bronze → Data Validation
 
 ## 4. Repository Structure
 
-Estructura actual (se irá ampliando conforme avancen las etapas del
-proyecto; no se crean carpetas vacías por adelantado):
+Estructura actual:
 
 ```
 grupo6-wholesale-mlops/
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
-├── Dockerfile
 ├── .dockerignore
-├── mlflow.db                                # generado por train.py/notebook 03 (no versionado)
+├── Dockerfile
+├── mlflow.db # generado por train.py/notebooks (no versionado)
 │
 ├── data/
-│   ├── raw/
-│   │   ├── _fallback/                      # copia pequeña de respaldo (offline demo)
-│   │   ├── wholesale_customers_raw.csv     # generado por ingest.py (no versionado)
-│   │   └── ingestion_metadata.json         # generado por ingest.py (no versionado)
-│   └── processed/
-│       ├── wholesale_features.csv          # generado por build_features.py (no versionado)
-│       └── features_metadata.json          # generado por build_features.py (no versionado)
+│ ├── raw/
+│ │ ├── _fallback/ # copia pequeña de respaldo (offline demo)
+│ │ ├── wholesale_customers_raw.csv # generado por ingest.py (no versionado)
+│ │ └── ingestion_metadata.json # generado por ingest.py (no versionado)
+│ └── processed/
+│ ├── wholesale_features.csv # generado por build_features.py (no versionado)
+│ └── features_metadata.json # generado por build_features.py (no versionado)
+│
+├── docs/
+│ ├── architecture.mmd # diagrama de arquitectura (fuente Mermaid)
+│ ├── architecture.png # diagrama de arquitectura (imagen)
+│ └── informe_tecnico.md # informe técnico del proyecto
+│
+├── logs/
+│ └── quality_alerts.log # generado por emitir_alerta() (no versionado)
 │
 ├── models/
-│   ├── kmeans_production.joblib            # generado por train.py en promoción a Production (no versionado)
-│   ├── feature_builder.joblib              # generado por build_features.py / train.py (no versionado)
-│   └── production_metadata.json            # generado por train.py en promoción a Production (no versionado)
+│ ├── kmeans_production.joblib # generado por train.py en promoción a Production (no versionado)
+│ ├── feature_builder.joblib # generado por build_features.py / train.py (no versionado)
+│ └── production_metadata.json # generado por train.py en promoción a Production (no versionado)
 │
 ├── notebooks/
-│   ├── 01_data_quality_diagnostico.ipynb          # ✅ implementado (sección F)
-│   ├── 02_eda_feature_engineering.ipynb           # ✅ implementado (secciones H, I)
-│   ├── 03_modelado_experiment_tracking.ipynb      # ✅ implementado (secciones J, K)
-│   └── 04_monitoring.ipynb                        # ✅ implementado (secciones O, P, Q, R)
+│ ├── 01_data_quality_diagnostico.ipynb # ✅ implementado (sección F)
+│ ├── 02_eda_feature_engineering.ipynb # ✅ implementado (secciones H, I)
+│ ├── 03_modelado_experiment_tracking.ipynb # ✅ implementado (secciones J, K)
+│ └── 04_monitoring.ipynb # ✅ implementado (secciones O, P, Q, R)
 │
-└── src/
-    ├── ingestion/
-    │   └── ingest.py                       # ✅ implementado
-    ├── data_quality/
-    │   └── validate.py                     # ✅ implementado (7 reglas)
-    ├── features/
-    │   └── build_features.py               # ✅ implementado (FeatureBuilder)
-    ├── training/
-    │   └── train.py                        # ✅ implementado (secciones J, K)
-    ├── monitoring/                         # ✅ implementado (secciones O, R)
-    │   ├── system_metrics.py               # O1: latency, throughput, error rate, availability
-    │   ├── drift.py                        # O2: PSI (Population Stability Index)
-    │   ├── model_monitor.py                # O3: distribución y estabilidad de clusters
-    │   ├── retrain_trigger.py              # R: lógica de decisión de reentrenamiento
-    │   └── run_monitoring.py               # Script ejecutable de monitoreo (O1+O2+O3+R)
-    └── api/
-        ├── main.py                         # ✅ implementado (FastAPI + middleware métricas)
-        └── schemas.py                      # ✅ implementado (Pydantic)
-
-tests/
-    ├── conftest.py                         # ✅ implementado (fixtures)
-    ├── test_data.py                        # ✅ implementado (sección N)
-    ├── test_model.py                       # ✅ implementado (sección N)
-    ├── test_api.py                         # ✅ implementado (sección N)
-    └── test_monitoring.py                  # ✅ implementado (sección O monitoring)
-```
+├── src/
+│ ├── ingestion/
+│ │ └── ingest.py # ✅ implementado
+│ ├── data_quality/
+│ │ └── validate.py # ✅ implementado (7 reglas + alertas persistentes)
+│ ├── features/
+│ │ └── build_features.py # ✅ implementado (FeatureBuilder)
+│ ├── training/
+│ │ └── train.py # ✅ implementado (secciones J, K)
+│ ├── monitoring/ # ✅ implementado (secciones O, R)
+│ │ ├── system_metrics.py # O1: latency, throughput, error rate, availability
+│ │ ├── drift.py # O2: PSI (Population Stability Index)
+│ │ ├── model_monitor.py # O3: distribución y estabilidad de clusters
+│ │ ├── retrain_trigger.py # R: lógica de decisión de reentrenamiento
+│ │ └── run_monitoring.py # Script ejecutable de monitoreo (O1+O2+O3+R)
+│ └── api/
+│ ├── main.py # ✅ implementado (FastAPI + middleware métricas)
+│ └── schemas.py # ✅ implementado (Pydantic)
+│
+└── tests/
+├── conftest.py # ✅ implementado (fixtures)
+├── test_ingestion.py # ✅ implementado (sección N)
+├── test_data.py # ✅ implementado (sección N)
+├── test_model.py # ✅ implementado (sección N)
+├── test_api.py # ✅ implementado (sección N)
+└── test_monitoring.py # ✅ implementado (sección O monitoring)
 
 ## 5. Installation
 
