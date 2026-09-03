@@ -458,9 +458,9 @@ cálculo del cluster ni la distancia.
 | `models/feature_builder.joblib`   | `train.py` (en promoción a Production) | Transformaciones ajustadas (scaler + PCA) |
 | `models/production_metadata.json` | `train.py` (en promoción a Production) | Versión, métricas, run_id de MLflow       |
 
-**Error si los artefactos no existen:** la API levanta pero retorna
-HTTP 503 en `/predict` hasta que se ejecuten `python src/training/train.py`
-para generar los modelos.
+**Error si los artefactos no existen:** la API falla al iniciar si no
+encuentra los archivos en `models/`. Ejecutar primero
+`python src/training/train.py` para generar los modelos.
 
 **Ejecutar dentro de Docker:** ver sección 11 (Docker).
 
@@ -486,6 +486,17 @@ Verifican que el dataset cumple las expectativas del esquema original:
 | `test_sin_nulos` | 0 valores faltantes |
 | `test_sin_gastos_negativos` | Ninguna variable de gasto es negativa |
 | `test_minimo_400_filas` | Al menos 400 registros |
+
+### Ingesta (`tests/test_ingestion.py`)
+
+Verifican la ingesta reproducible y la validación estructural:
+
+| Test | Qué valida |
+|------|------------|
+| `test_validate_schema_ok` | Dataset real pasa la validación estructural |
+| `test_validate_schema_faltan_columnas` | Columnas faltantes → ValueError |
+| `test_validate_schema_pocas_filas` | Pocas filas → ValueError |
+| `test_compute_checksum_known_content` | Checksum SHA-256 calculado correctamente |
 
 ### Modelo (`tests/test_model.py`)
 
