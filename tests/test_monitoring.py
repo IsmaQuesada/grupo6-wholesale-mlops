@@ -166,4 +166,56 @@ def test_evaluar_reentrenar(raw_data):
     resultado = evaluar_necesidad_reentrenamiento(
         raw_data, df_prod, silhouette_actual=0.25, modelo=modelo, feature_builder=fb,
     )
-    assert resultado["decision"] in ("REENTRENAR", "MONITOREAR")
+    assert resultado["decision"] != "OK"
+
+
+# ------------------------------------------------------------------
+# Tests adicionales de boundary values y accumulación
+# ------------------------------------------------------------------
+
+def test_clasificar_psi_boundary():
+    """Verifica que los valores exactos de boundary clasifican correctamente."""
+    assert clasificar_psi(0.10) == "WARNING"   # boundary OK/WARNING
+    assert clasificar_psi(0.25) == "ALERT"     # boundary WARNING/ALERT
+
+
+def test_comparar_distribuciones_boundary():
+    """Verifica que diferencia exactamente 10pp es estable (<= umbral)."""
+    dist_ref = {0: 30.0, 1: 40.0, 2: 30.0}
+    dist_prod = {0: 40.0, 1: 30.0, 2: 30.0}  # 10pp exactos
+    resultado = comparar_distribuciones(dist_ref, dist_prod, umbral=10.0)
+    assert resultado["estable"] is True
+    assert resultado["diferencia_maxima"] == 10.0
+
+
+def test_record_request_acumula():
+    """Verifica que record_request acumula métricas correctamente."""
+    from src.monitoring.system_metrics import record_request, get_metrics
+    import importlib
+    import src.monitoring.system_metrics as sm
+
+    # Reset state
+    sm._total_requests = 0
+    sm._error_count = 0
+    sm._response_times.clear()
+
+    record_request(0.1, is_error=False)
+    record_request(0.2, is_error=False)
+    record_request(0.3, is_error=True)
+    metrics = get_metrics()
+
+    assert metrics["total_requests"] == 3
+    assert metrics["error_rate_pct"] == pytest.approx(33.33, abs=0.1)
+
+
+def test_calcular_psi_dataframe(raw_data):
+    """Verifica que calcular_psi_dataframe retorna PSI para las 6 variables de gasto."""
+    from src.features.build_features import COLS_GASTO
+    rng = np.random.default_rng(42)
+    df_prod = raw_data.copy()
+    df_prod["Fresh"] = (df_prod["Fresh"] * 2).astype(int)
+
+    resultado = calcular_psi_dataframe(raw_data, df_prod, COLS_GASTO)
+    assert set(resultado.keys()) == set(COLS_GASTO)
+    assert resultado["Fresh"] > 0, "Fresh debería tener PSI > 0 tras multiplicar x2"
+    assert resultado["Milk"] == pytest.approx(0.0, abs=0.01), "Milk debería tener PSI ~0"

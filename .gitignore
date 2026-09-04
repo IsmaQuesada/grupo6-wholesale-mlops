@@ -9,6 +9,7 @@ mlflow.db
 mlruns/
 notebooks/mlruns/
 mlartifacts/
+logs/
 
 # Python
 __pycache__/

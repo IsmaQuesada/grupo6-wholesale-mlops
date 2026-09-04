@@ -44,63 +44,71 @@ Fuente de datos → Data Ingestion → Raw/Bronze → Data Validation
 
 ## 4. Repository Structure
 
-Estructura actual (se irá ampliando conforme avancen las etapas del
-proyecto; no se crean carpetas vacías por adelantado):
+Estructura actual:
 
 ```
 grupo6-wholesale-mlops/
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
-├── Dockerfile
 ├── .dockerignore
-├── mlflow.db                                # generado por train.py/notebook 03 (no versionado)
+├── Dockerfile
+├── mlflow.db # generado por train.py/notebooks (no versionado)
 │
 ├── data/
-│   ├── raw/
-│   │   ├── _fallback/                      # copia pequeña de respaldo (offline demo)
-│   │   ├── wholesale_customers_raw.csv     # generado por ingest.py (no versionado)
-│   │   └── ingestion_metadata.json         # generado por ingest.py (no versionado)
-│   └── processed/
-│       ├── wholesale_features.csv          # generado por build_features.py (no versionado)
-│       └── features_metadata.json          # generado por build_features.py (no versionado)
+│ ├── raw/
+│ │ ├── _fallback/ # copia pequeña de respaldo (offline demo)
+│ │ ├── wholesale_customers_raw.csv # generado por ingest.py (no versionado)
+│ │ └── ingestion_metadata.json # generado por ingest.py (no versionado)
+│ └── processed/
+│ ├── wholesale_features.csv # generado por build_features.py (no versionado)
+│ └── features_metadata.json # generado por build_features.py (no versionado)
+│
+├── docs/
+│ ├── architecture.mmd # diagrama de arquitectura (fuente Mermaid)
+│ ├── architecture.png # diagrama de arquitectura (imagen)
+│ └── informe_tecnico.md # informe técnico del proyecto
+│
+├── logs/
+│ └── quality_alerts.log # generado por emitir_alerta() (no versionado)
 │
 ├── models/
-│   ├── kmeans_production.joblib            # generado por train.py en promoción a Production (no versionado)
-│   ├── feature_builder.joblib              # generado por build_features.py / train.py (no versionado)
-│   └── production_metadata.json            # generado por train.py en promoción a Production (no versionado)
+│ ├── kmeans_production.joblib # generado por train.py en promoción a Production (no versionado)
+│ ├── feature_builder.joblib # generado por build_features.py / train.py (no versionado)
+│ └── production_metadata.json # generado por train.py en promoción a Production (no versionado)
 │
 ├── notebooks/
-│   ├── 01_data_quality_diagnostico.ipynb          # ✅ implementado (sección F)
-│   ├── 02_eda_feature_engineering.ipynb           # ✅ implementado (secciones H, I)
-│   ├── 03_modelado_experiment_tracking.ipynb      # ✅ implementado (secciones J, K)
-│   └── 04_monitoring.ipynb                        # ✅ implementado (secciones O, P, Q, R)
+│ ├── 01_data_quality_diagnostico.ipynb # ✅ implementado (sección F)
+│ ├── 02_eda_feature_engineering.ipynb # ✅ implementado (secciones H, I)
+│ ├── 03_modelado_experiment_tracking.ipynb # ✅ implementado (secciones J, K)
+│ └── 04_monitoring.ipynb # ✅ implementado (secciones O, P, Q, R)
 │
-└── src/
-    ├── ingestion/
-    │   └── ingest.py                       # ✅ implementado
-    ├── data_quality/
-    │   └── validate.py                     # ✅ implementado (7 reglas)
-    ├── features/
-    │   └── build_features.py               # ✅ implementado (FeatureBuilder)
-    ├── training/
-    │   └── train.py                        # ✅ implementado (secciones J, K)
-    ├── monitoring/                         # ✅ implementado (secciones O, R)
-    │   ├── system_metrics.py               # O1: latency, throughput, error rate, availability
-    │   ├── drift.py                        # O2: PSI (Population Stability Index)
-    │   ├── model_monitor.py                # O3: distribución y estabilidad de clusters
-    │   └── retrain_trigger.py              # R: lógica de decisión de reentrenamiento
-    └── api/
-        ├── main.py                         # ✅ implementado (FastAPI + middleware métricas)
-        └── schemas.py                      # ✅ implementado (Pydantic)
-
-tests/
-    ├── conftest.py                         # ✅ implementado (fixtures)
-    ├── test_data.py                        # ✅ implementado (sección N)
-    ├── test_model.py                       # ✅ implementado (sección N)
-    ├── test_api.py                         # ✅ implementado (sección N)
-    └── test_monitoring.py                  # ✅ implementado (sección O monitoring)
-```
+├── src/
+│ ├── ingestion/
+│ │ └── ingest.py # ✅ implementado
+│ ├── data_quality/
+│ │ └── validate.py # ✅ implementado (7 reglas + alertas persistentes)
+│ ├── features/
+│ │ └── build_features.py # ✅ implementado (FeatureBuilder)
+│ ├── training/
+│ │ └── train.py # ✅ implementado (secciones J, K)
+│ ├── monitoring/ # ✅ implementado (secciones O, R)
+│ │ ├── system_metrics.py # O1: latency, throughput, error rate, availability
+│ │ ├── drift.py # O2: PSI (Population Stability Index)
+│ │ ├── model_monitor.py # O3: distribución y estabilidad de clusters
+│ │ ├── retrain_trigger.py # R: lógica de decisión de reentrenamiento
+│ │ └── run_monitoring.py # Script ejecutable de monitoreo (O1+O2+O3+R)
+│ └── api/
+│ ├── main.py # ✅ implementado (FastAPI + middleware métricas)
+│ └── schemas.py # ✅ implementado (Pydantic)
+│
+└── tests/
+├── conftest.py # ✅ implementado (fixtures)
+├── test_ingestion.py # ✅ implementado (sección N)
+├── test_data.py # ✅ implementado (sección N)
+├── test_model.py # ✅ implementado (sección N)
+├── test_api.py # ✅ implementado (sección N)
+└── test_monitoring.py # ✅ implementado (sección O monitoring)
 
 ## 5. Installation
 
@@ -289,8 +297,8 @@ features (importa `FeatureBuilder`) ni la de calidad de datos (importa
    pipeline si alguna falla).
 2. Construye las features con `FeatureBuilder`.
 3. Entrena K-Means (k=3) y calcula silhouette, Davies-Bouldin e inertia.
-4. Registra un nuevo run en MLflow con parámetros, métricas y el modelo
-   como artifact.
+4. Registra un nuevo run en MLflow con parámetros, métricas, el modelo
+   como artifact y un scatter plot de clusters.
 5. Valida estabilidad con una semilla alternativa y, si pasa, promueve el
    modelo a Production en el Model Registry.
 
@@ -312,7 +320,7 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Parameters** | `algorithm`, `n_clusters`, `feature_set` (ej. `PCA_5_componentes`), `random_seed`, `data_version` (heredado de `ingestion_metadata.json`)        |
 | **Metrics**    | `silhouette`, `davies_bouldin`, `inertia`; en el run final también `silhouette_semilla_alternativa` y `diferencia_estabilidad`                   |
-| **Artifacts**  | El modelo entrenado (`mlflow.sklearn.log_model`), además de los gráficos de comparación de clusters y perfiles de gasto generados en el notebook |
+| **Artifacts**  | El modelo entrenado (`mlflow.sklearn.log_model`), scatter plot de clusters (desde `train.py`), y gráficos de comparación de clusters y perfiles de gasto generados en el notebook |
 
 **Model Registry — ciclo Experiment → Candidate → Validation → Production:**
 
@@ -450,16 +458,16 @@ cálculo del cluster ni la distancia.
 | `models/feature_builder.joblib`   | `train.py` (en promoción a Production) | Transformaciones ajustadas (scaler + PCA) |
 | `models/production_metadata.json` | `train.py` (en promoción a Production) | Versión, métricas, run_id de MLflow       |
 
-**Error si los artefactos no existen:** la API levanta pero retorna
-HTTP 503 en `/predict` hasta que se ejecuten `python src/training/train.py`
-para generar los modelos.
+**Error si los artefactos no existen:** la API falla al iniciar si no
+encuentra los archivos en `models/`. Ejecutar primero
+`python src/training/train.py` para generar los modelos.
 
 **Ejecutar dentro de Docker:** ver sección 11 (Docker).
 
 ## 13. Pruebas
 
 Suite de tests con **pytest** que cubre datos, modelo, API y
-monitoring. Total: 28 tests (+ 1 condicional).
+monitoring. Total: 46 tests incondicionales (+ 5 condicionales que requieren modelos generados).
 
 ```bash
 pytest tests/ -v
@@ -478,6 +486,17 @@ Verifican que el dataset cumple las expectativas del esquema original:
 | `test_sin_nulos` | 0 valores faltantes |
 | `test_sin_gastos_negativos` | Ninguna variable de gasto es negativa |
 | `test_minimo_400_filas` | Al menos 400 registros |
+
+### Ingesta (`tests/test_ingestion.py`)
+
+Verifican la ingesta reproducible y la validación estructural:
+
+| Test | Qué valida |
+|------|------------|
+| `test_validate_schema_ok` | Dataset real pasa la validación estructural |
+| `test_validate_schema_faltan_columnas` | Columnas faltantes → ValueError |
+| `test_validate_schema_pocas_filas` | Pocas filas → ValueError |
+| `test_compute_checksum_known_content` | Checksum SHA-256 calculado correctamente |
 
 ### Modelo (`tests/test_model.py`)
 
@@ -713,7 +732,67 @@ y no redundante con el silhouette.
 
 ## 15. Results
 
-_(pendiente — próxima entrega)_
+### 15.1 Métricas del Modelo en Producción
+
+| Métrica | Valor | Interpretación |
+|---------|-------|----------------|
+| **Silhouette Score** | 0.2566 | Separación moderada entre clusters |
+| **Davies-Bouldin Index** | 1.4325 | Índice aceptable (menor = mejor) |
+| **Inertia** | 2841.48 | Cohesión intra-cluster |
+| **Estabilidad (diff semilla)** | 0.0002 | Muy estable (umbral: 0.05) |
+
+### 15.2 Comparación de Configuraciones
+
+Se evaluaron 10 configuraciones (KMeans y Agglomerative Clustering, k=2 a k=6). KMeans domina en todas las métricas para cada valor de k.
+
+| Algoritmo | k | Silhouette | Davies-Bouldin |
+|-----------|---|------------|----------------|
+| KMeans | 2 | 0.3224 | 1.2315 |
+| **KMeans** | **3** | **0.2566** | **1.4325** |
+| KMeans | 4 | 0.2320 | 1.4155 |
+| KMeans | 5 | 0.2344 | 1.3935 |
+| KMeans | 6 | 0.2334 | 1.3506 |
+
+**Selección de k=3:** Aunque k=2 tenía el mejor silhouette (0.322), su cluster dominante era 96% Channel=Horeca — básicamente redescubría una variable conocida. k=3 revela un perfil de negocio genuinamente nuevo (HoreCa diversificado) sin ser redundante con Channel.
+
+### 15.3 Perfiles de Clusters (Datos Originales, Promedio)
+
+| Cluster | Fresh | Milk | Grocery | Frozen | Detergents_Paper | Delicassen | Perfil |
+|---------|-------|------|---------|--------|------------------|------------|--------|
+| **0** | **19,515** | 2,057 | 2,632 | 3,030 | 420 | 763 | HoReCa Fresh |
+| **1** | 6,221 | **9,596** | **14,870** | 1,266 | **6,550** | 1,283 | Retail/Abarrotes |
+| **2** | 11,604 | 4,890 | 4,855 | **5,269** | 891 | **2,554** | HoReCa Diversificado |
+
+**Interpretación de negocio:**
+- **Cluster 0 (HoReCa Fresh — 30.7%):** Clientes con gasto extremadamente alto en Fresh (19,515) y bajo en todo lo demás. Restaurantes y hoteles especializados en alimentos frescos.
+- **Cluster 1 (Retail/Abarrotes — 37.7%):** Dominado por Milk (9,596), Grocery (14,870) y Detergents_Paper (6,550). Tiendas de abarrotes y supermercados.
+- **Cluster 2 (HoReCa Diversificado — 31.6%):** Fresh moderado, pero el gasto más alto en Frozen (5,269) y Delicassen (2,554). Restaurantes con menú diversificado que incluye congelados y delicatessen.
+
+### 15.4 Validación Externas
+
+**Cluster vs Channel:**
+
+| Cluster | Channel=1 (Horeca) | Channel=2 (Retail) |
+|---------|-------------------|-------------------|
+| 0 | **97%** | 3% |
+| 1 | 27% | **73%** |
+| 2 | **88%** | 12% |
+
+Los clusters 0 y 2 son ambos dominados por Horeca, pero representan dos perfiles de compra genuinamente distintos que Channel solo no captura: el especializado en fresco vs. el diversificado.
+
+**Cluster vs Region:** Sin poder discriminatorio — todos los clusters son ~70% Region 3.
+
+### 15.5 Análisis de Componentes Principales
+
+5 componentes retienen el **85.7%** de la varianza:
+
+| Componente | Varianza | Acumulada |
+|------------|----------|-----------|
+| PC1 | 41.8% | 41.8% |
+| PC2 | 16.3% | 58.2% |
+| PC3 | 12.1% | 70.3% |
+| PC4 | 9.2% | 79.5% |
+| PC5 | 6.2% | **85.7%** |
 
 ## 16. Team
 

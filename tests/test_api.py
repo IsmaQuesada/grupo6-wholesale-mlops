@@ -67,3 +67,43 @@ def test_root_200(client):
     """GET / retorna 200 con info básica de la API."""
     resp = client.get("/")
     assert resp.status_code == 200
+
+
+def test_predict_string_input(client):
+    """Verifica que input con string en vez de número retorna 422."""
+    resp = client.post("/predict", json={
+        "Fresh": "abc", "Milk": 9656, "Grocery": 7561,
+        "Frozen": 214, "Detergents_Paper": 2674, "Delicassen": 1338,
+    })
+    assert resp.status_code == 422
+
+
+def test_predict_null_field(client):
+    """Verifica que campo nulo retorna 422."""
+    resp = client.post("/predict", json={
+        "Fresh": None, "Milk": 9656, "Grocery": 7561,
+        "Frozen": 214, "Detergents_Paper": 2674, "Delicassen": 1338,
+    })
+    assert resp.status_code == 422
+
+
+def test_predict_empty_body(client):
+    """Verifica que body vacío retorna 422."""
+    resp = client.post("/predict", json={})
+    assert resp.status_code == 422
+
+
+def test_predict_wrong_fields(client):
+    """Verifica que campos incorrectos retornan 422."""
+    resp = client.post("/predict", json={"X": 1, "Y": 2})
+    assert resp.status_code == 422
+
+
+def test_predict_distance_non_negative(client, sample_request):
+    """Verifica que distance_to_centroid es no negativo."""
+    resp = client.post("/predict", json=sample_request)
+    if resp.status_code == 503:
+        pytest.skip("Model artifacts not loaded")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["distance_to_centroid"] >= 0

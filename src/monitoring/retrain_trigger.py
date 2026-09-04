@@ -15,15 +15,17 @@ reentrena cuando hay evidencia de degradación real (caída de silhouette o
 inestabilidad de composición), no solo de cambio de distribución de entrada.
 """
 import json
+import sys
 from pathlib import Path
 
 import pandas as pd
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+
 from src.features.build_features import COLS_GASTO
 from src.monitoring.drift import calcular_psi_dataframe
 from src.monitoring.model_monitor import comparar_distribuciones, obtener_distribucion_clusters
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
 
 UMBRAL_PSI = 0.25  # mismo umbral ALERT usado en la Sección P
 RATIO_SILHOUETTE_MINIMO = 0.70  # tolera hasta 30% de caída respecto a la línea base
@@ -83,3 +85,27 @@ def evaluar_necesidad_reentrenamiento(
         "performance_baja": performance_baja,
         "modelo_inestable": modelo_inestable,
     }
+
+
+if __name__ == "__main__":
+    from src.monitoring.model_monitor import cargar_modelo
+
+    csv_path = REPO_ROOT / "data" / "raw" / "wholesale_customers_raw.csv"
+    if not csv_path.exists():
+        print("ERROR: No existe data/raw/wholesale_customers_raw.csv")
+        print("  Ejecuta primero: python src/ingestion/ingest.py")
+        sys.exit(1)
+
+    df = pd.read_csv(csv_path)
+    modelo, fb = cargar_modelo()
+
+    # Smoke test: evaluar con los mismos datos (deberia dar OK)
+    resultado = evaluar_necesidad_reentrenamiento(
+        df, df, silhouette_actual=0.25, modelo=modelo, feature_builder=fb,
+    )
+    print(f"Smoke test (misma referencia y produccion):")
+    print(f"  Decision: {resultado['decision']}")
+    print(f"  PSI max:  {resultado['psi_max']}")
+    print(f"  Drift:    {resultado['drift_alto']}")
+    print(f"  Perf:     {resultado['performance_baja']}")
+    print(f"  Estable:  {not resultado['modelo_inestable']}")

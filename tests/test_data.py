@@ -1,4 +1,4 @@
-from src.data_quality.validate import COLS_GASTO
+from src.data_quality.validate import COLS_GASTO, validar_calidad_datos
 
 EXPECTED_COLUMNS = [
     "Channel", "Region", "Fresh", "Milk", "Grocery",
@@ -40,3 +40,27 @@ def test_sin_gastos_negativos(raw_data):
 def test_minimo_400_filas(raw_data):
     """Verifica que hay al menos 400 registros."""
     assert len(raw_data) >= 400
+
+
+def test_sin_duplicados(raw_data):
+    """Verifica que la proporción de duplicados está bajo el umbral de 2%."""
+    prop_duplicados = raw_data.duplicated().mean()
+    assert prop_duplicados < 0.02, f"{prop_duplicados:.2%} duplicados (umbral: 2%)"
+
+
+def test_esquema_8_columnas_exactas(raw_data):
+    """Verifica que no hay columnas fuera del esquema esperado."""
+    assert set(raw_data.columns) == set(EXPECTED_COLUMNS)
+
+
+def test_filas_no_excesivas(raw_data):
+    """Sanity check: el dataset no tiene un número absurdamente alto de filas."""
+    assert len(raw_data) < 10000
+
+
+def test_validar_calidad_datos_pass(raw_data):
+    """Verifica que validar_calidad_datos retorna PASS para datos válidos."""
+    reporte = validar_calidad_datos(raw_data, COLS_GASTO)
+    assert all(r["pass"] for r in reporte.values()), (
+        f"Reglas fallidas: {[k for k, v in reporte.items() if not v['pass']]}"
+    )
