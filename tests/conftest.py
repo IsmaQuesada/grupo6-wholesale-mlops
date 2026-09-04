@@ -11,7 +11,10 @@ sys.path.insert(0, str(REPO_ROOT))
 @pytest.fixture
 def raw_data():
     """Carga el dataset crudo para tests de datos."""
-    return pd.read_csv(REPO_ROOT / "data" / "raw" / "wholesale_customers_raw.csv")
+    csv_path = REPO_ROOT / "data" / "raw" / "wholesale_customers_raw.csv"
+    if not csv_path.exists():
+        pytest.skip("CSV no generado — ejecuta: python src/ingestion/ingest.py")
+    return pd.read_csv(csv_path)
 
 
 @pytest.fixture

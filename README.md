@@ -32,9 +32,7 @@ descubiertos capturan información más rica que la ya conocida.
 
 ## 3. Architecture
 
-Ver diagrama completo en `docs/architecture.png` y su justificación en
-`docs/architecture.md` (se agregará en una entrega posterior). Arquitectura
-general obligatoria del curso:
+Arquitectura general obligatoria del curso:
 
 ```
 Fuente de datos → Data Ingestion → Raw/Bronze → Data Validation
@@ -46,60 +44,71 @@ Fuente de datos → Data Ingestion → Raw/Bronze → Data Validation
 
 ## 4. Repository Structure
 
-Estructura actual (se irá ampliando conforme avancen las etapas del
-proyecto; no se crean carpetas vacías por adelantado):
+Estructura actual:
 
 ```
 grupo6-wholesale-mlops/
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
-├── Dockerfile
 ├── .dockerignore
-├── mlflow.db                                # generado por train.py/notebook 03 (no versionado)
+├── Dockerfile
+├── mlflow.db # generado por train.py/notebooks (no versionado)
 │
 ├── data/
-│   ├── raw/
-│   │   ├── _fallback/                      # copia pequeña de respaldo (offline demo)
-│   │   ├── wholesale_customers_raw.csv     # generado por ingest.py (no versionado)
-│   │   └── ingestion_metadata.json         # generado por ingest.py (no versionado)
-│   └── processed/
-│       ├── wholesale_features.csv          # generado por build_features.py (no versionado)
-│       └── features_metadata.json          # generado por build_features.py (no versionado)
+│ ├── raw/
+│ │ ├── _fallback/ # copia pequeña de respaldo (offline demo)
+│ │ ├── wholesale_customers_raw.csv # generado por ingest.py (no versionado)
+│ │ └── ingestion_metadata.json # generado por ingest.py (no versionado)
+│ └── processed/
+│ ├── wholesale_features.csv # generado por build_features.py (no versionado)
+│ └── features_metadata.json # generado por build_features.py (no versionado)
+│
+├── docs/
+│ ├── architecture.mmd # diagrama de arquitectura (fuente Mermaid)
+│ ├── architecture.png # diagrama de arquitectura (imagen)
+│ └── informe_tecnico.md # informe técnico del proyecto
+│
+├── logs/
+│ └── quality_alerts.log # generado por emitir_alerta() (no versionado)
 │
 ├── models/
-│   ├── kmeans_production.joblib            # generado por train.py en promoción a Production (no versionado)
-│   ├── feature_builder.joblib              # generado por build_features.py / train.py (no versionado)
-│   └── production_metadata.json            # generado por train.py en promoción a Production (no versionado)
+│ ├── kmeans_production.joblib # generado por train.py en promoción a Production (no versionado)
+│ ├── feature_builder.joblib # generado por build_features.py / train.py (no versionado)
+│ └── production_metadata.json # generado por train.py en promoción a Production (no versionado)
 │
 ├── notebooks/
-│   ├── 01_data_quality_diagnostico.ipynb          # ✅ implementado (sección F)
-│   ├── 02_eda_feature_engineering.ipynb           # ✅ implementado (secciones H, I)
-│   └── 03_modelado_experiment_tracking.ipynb      # ✅ implementado (secciones J, K)
+│ ├── 01_data_quality_diagnostico.ipynb # ✅ implementado (sección F)
+│ ├── 02_eda_feature_engineering.ipynb # ✅ implementado (secciones H, I)
+│ ├── 03_modelado_experiment_tracking.ipynb # ✅ implementado (secciones J, K)
+│ └── 04_monitoring.ipynb # ✅ implementado (secciones O, P, Q, R)
 │
-└── src/
-    ├── ingestion/
-    │   └── ingest.py                       # ✅ implementado
-    ├── data_quality/
-    │   └── validate.py                     # ✅ implementado
-    ├── features/
-    │   └── build_features.py               # ✅ implementado
-    ├── training/
-    │   └── train.py                        # ✅ implementado (secciones J, K)
-    └── api/
-        ├── main.py                         # ✅ implementado (FastAPI)
-        └── schemas.py                      # ✅ implementado (Pydantic)
-
-tests/
-    ├── conftest.py                         # ✅ implementado (fixtures)
-    ├── test_data.py                        # ✅ implementado (sección N)
-    ├── test_model.py                       # ✅ implementado (sección N)
-    └── test_api.py                         # ✅ implementado (sección N)
-```
-
-**Próximas carpetas a agregar según se completen esas etapas del
-enunciado:** `src/monitoring/`, `monitoring_reports/`,
-`docs/` (más allá de la guía interna ya existente).
+├── src/
+│ ├── ingestion/
+│ │ └── ingest.py # ✅ implementado
+│ ├── data_quality/
+│ │ └── validate.py # ✅ implementado (7 reglas + alertas persistentes)
+│ ├── features/
+│ │ └── build_features.py # ✅ implementado (FeatureBuilder)
+│ ├── training/
+│ │ └── train.py # ✅ implementado (secciones J, K)
+│ ├── monitoring/ # ✅ implementado (secciones O, R)
+│ │ ├── system_metrics.py # O1: latency, throughput, error rate, availability
+│ │ ├── drift.py # O2: PSI (Population Stability Index)
+│ │ ├── model_monitor.py # O3: distribución y estabilidad de clusters
+│ │ ├── retrain_trigger.py # R: lógica de decisión de reentrenamiento
+│ │ └── run_monitoring.py # Script ejecutable de monitoreo (O1+O2+O3+R)
+│ └── api/
+│ ├── main.py # ✅ implementado (FastAPI + middleware métricas)
+│ └── schemas.py # ✅ implementado (Pydantic)
+│
+└── tests/
+├── conftest.py # ✅ implementado (fixtures)
+├── test_ingestion.py # ✅ implementado (sección N)
+├── test_data.py # ✅ implementado (sección N)
+├── test_model.py # ✅ implementado (sección N)
+├── test_api.py # ✅ implementado (sección N)
+└── test_monitoring.py # ✅ implementado (sección O monitoring)
 
 ## 5. Installation
 
@@ -175,7 +184,7 @@ El notebook investiga, con evidencia y justificación para cada decisión
 python src/data_quality/validate.py     # o: py src/data_quality/validate.py
 ```
 
-Implementa 5 reglas automáticas, cada una con umbral justificado en el
+Implementa 7 reglas automáticas, cada una con umbral justificado en el
 notebook de diagnóstico:
 
 | Regla                            | Qué valida                                                                | Umbral                     |
@@ -183,8 +192,10 @@ notebook de diagnóstico:
 | `min_rows`                       | El dataset no perdió filas significativamente respecto al histórico (440) | ≥ 90% del histórico        |
 | `sin_nulos_obligatorios`         | No hay nulos en columnas de gasto ni en Channel/Region                    | 0 nulos                    |
 | `duplicados_bajo_umbral`         | Proporción de filas duplicadas                                            | < 2%                       |
+| `tipos_numericos_validos`        | Columnas de gasto son numéricas                                           | Todas numéricas            |
 | `sin_gastos_negativos`           | Ninguna variable de gasto tiene valores negativos (dato imposible)        | 0 negativos                |
 | `cardinalidad_categorica_valida` | Channel ∈ {1,2} y Region ∈ {1,2,3}                                        | sin categorías inesperadas |
+| `esquema_sin_columnas_extra`     | No hay columnas fuera del esquema esperado (8 columnas)                   | 0 columnas extra           |
 
 Este script está diseñado para ejecutarse tanto de forma independiente
 como importado desde otros scripts del pipeline (`src/training/train.py`),
@@ -286,8 +297,8 @@ features (importa `FeatureBuilder`) ni la de calidad de datos (importa
    pipeline si alguna falla).
 2. Construye las features con `FeatureBuilder`.
 3. Entrena K-Means (k=3) y calcula silhouette, Davies-Bouldin e inertia.
-4. Registra un nuevo run en MLflow con parámetros, métricas y el modelo
-   como artifact.
+4. Registra un nuevo run en MLflow con parámetros, métricas, el modelo
+   como artifact y un scatter plot de clusters.
 5. Valida estabilidad con una semilla alternativa y, si pasa, promueve el
    modelo a Production en el Model Registry.
 
@@ -309,7 +320,7 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Parameters** | `algorithm`, `n_clusters`, `feature_set` (ej. `PCA_5_componentes`), `random_seed`, `data_version` (heredado de `ingestion_metadata.json`)        |
 | **Metrics**    | `silhouette`, `davies_bouldin`, `inertia`; en el run final también `silhouette_semilla_alternativa` y `diferencia_estabilidad`                   |
-| **Artifacts**  | El modelo entrenado (`mlflow.sklearn.log_model`), además de los gráficos de comparación de clusters y perfiles de gasto generados en el notebook |
+| **Artifacts**  | El modelo entrenado (`mlflow.sklearn.log_model`), scatter plot de clusters (desde `train.py`), y gráficos de comparación de clusters y perfiles de gasto generados en el notebook |
 
 **Model Registry — ciclo Experiment → Candidate → Validation → Production:**
 
@@ -405,6 +416,7 @@ Invoke-RestMethod -Uri http://localhost:8000/predict -Method Post -ContentType "
 | ------ | ---------- | ------------------------------------------------ |
 | `GET`  | `/`        | Información básica de la API                     |
 | `GET`  | `/health`  | Estado del servicio y versión del modelo cargado |
+| `GET`  | `/metrics` | Métricas de sistema: latencia, throughput, error rate, availability (Sección O1) |
 | `POST` | `/predict` | Predicción de cluster para un cliente nuevo      |
 
 ### Formato de request (POST /predict)
@@ -446,16 +458,16 @@ cálculo del cluster ni la distancia.
 | `models/feature_builder.joblib`   | `train.py` (en promoción a Production) | Transformaciones ajustadas (scaler + PCA) |
 | `models/production_metadata.json` | `train.py` (en promoción a Production) | Versión, métricas, run_id de MLflow       |
 
-**Error si los artefactos no existen:** la API levanta pero retorna
-HTTP 503 en `/predict` hasta que se ejecuten `python src/training/train.py`
-para generar los modelos.
+**Error si los artefactos no existen:** la API falla al iniciar si no
+encuentra los archivos en `models/`. Ejecutar primero
+`python src/training/train.py` para generar los modelos.
 
 **Ejecutar dentro de Docker:** ver sección 11 (Docker).
 
 ## 13. Pruebas
 
-Suite de tests con **pytest** que cubre los tres niveles
-exigidos por la sección N del enunciado: datos, modelo y API.
+Suite de tests con **pytest** que cubre datos, modelo, API y
+monitoring. Total: 46 tests incondicionales (+ 5 condicionales que requieren modelos generados).
 
 ```bash
 pytest tests/ -v
@@ -475,6 +487,17 @@ Verifican que el dataset cumple las expectativas del esquema original:
 | `test_sin_gastos_negativos` | Ninguna variable de gasto es negativa |
 | `test_minimo_400_filas` | Al menos 400 registros |
 
+### Ingesta (`tests/test_ingestion.py`)
+
+Verifican la ingesta reproducible y la validación estructural:
+
+| Test | Qué valida |
+|------|------------|
+| `test_validate_schema_ok` | Dataset real pasa la validación estructural |
+| `test_validate_schema_faltan_columnas` | Columnas faltantes → ValueError |
+| `test_validate_schema_pocas_filas` | Pocas filas → ValueError |
+| `test_compute_checksum_known_content` | Checksum SHA-256 calculado correctamente |
+
 ### Modelo (`tests/test_model.py`)
 
 Verifican que el modelo entrenado funciona correctamente:
@@ -487,10 +510,13 @@ Verifican que el modelo entrenado funciona correctamente:
 
 ### API (`tests/test_api.py`)
 
-Verifican los endpoints de inferencia con `FastAPI TestClient`:
+Verifican los endpoints con `FastAPI TestClient`:
 
 | Test | Qué valida |
 |------|------------|
+| `test_health_200` | GET /health → 200 + `status: "ok"` |
+| `test_metrics_200` | GET /metrics → 200 + 6 claves de métricas |
+| `test_root_200` | GET / → 200 |
 | `test_predict_200` | Request válido → HTTP 200 + schema válido |
 | `test_predict_campos_requeridos` | Campo faltante → HTTP 422 |
 | `test_predict_gasto_negativo` | Gasto negativo → HTTP 422 |
@@ -499,13 +525,274 @@ Verifican los endpoints de inferencia con `FastAPI TestClient`:
 artefactos en `models/` y el CSV en `data/raw/`. Ejecutar primero
 `python src/training/train.py` si no existen.
 
-## 14. Monitoring
+### Monitoring (`tests/test_monitoring.py`)
 
-_(pendiente — próxima entrega)_
+Verifican la lógica de los módulos de monitoreo (drift, model_monitor,
+system_metrics, retrain_trigger):
+
+| Test | Qué valida |
+|------|------------|
+| `test_clasificar_psi_ok` | PSI < 0.10 → "OK" |
+| `test_clasificar_psi_warning` | 0.10 ≤ PSI < 0.25 → "WARNING" |
+| `test_clasificar_psi_alert` | PSI ≥ 0.25 → "ALERT" |
+| `test_calcular_psi_mismas_distribuciones` | Distribuciones idénticas → PSI ≈ 0 |
+| `test_calcular_psi_distribuciones_diferentes` | Distribuciones distintas → PSI > 0 |
+| `test_comparar_distribuciones_estable` | Diferencia < 10pp → estable |
+| `test_comparar_distribuciones_inestable` | Diferencia > 10pp → inestable |
+| `test_get_metrics_estructura` | Retorna las 6 claves de métricas de sistema |
+| `test_cargar_modelo` | Modelo y FeatureBuilder se cargan correctamente |
+| `test_obtener_distribucion_clusters` | Distribución suma ~100%, clusters ∈ {0,1,2} |
+| `test_evaluar_ok` | Drift bajo + silhouette alta + composición estable → "OK" |
+| `test_evaluar_monitorear` | Drift alto pero modelo estable → "MONITOREAR" |
+| `test_evaluar_reentrenar` | Composición inestable → "REENTRENAR" |
+
+## 14. Monitoring (Secciones O, P, Q, R)
+
+El monitoreo es uno de los componentes de mayor peso del proyecto. Se
+implementa en `src/monitoring/` y se demuestra en
+`notebooks/04_monitoring.ipynb`. Cubre tres dimensiones (O1–O3), una
+simulación de drift (P), una simulación de contaminación de calidad (Q)
+y una estrategia de reentrenamiento (R).
+
+### 14.1 O1 — System Monitoring
+
+**Módulo:** `src/monitoring/system_metrics.py`
+
+Métricas operativas de corto plazo, calculadas en memoria del proceso:
+
+| Métrica                  | Descripción                                             |
+| ------------------------ | ------------------------------------------------------- |
+| `latency_avg_ms`         | Latencia promedio de las últimas 1000 requests (ventana móvil) |
+| `throughput_req_per_sec` | Requests por segundo desde el arranque del servicio     |
+| `error_rate_pct`         | Porcentaje de requests con status ≥ 400                 |
+| `availability_pct`       | Porcentaje de requests exitosos                         |
+| `total_requests`         | Total acumulado de requests                             |
+| `uptime_seconds`         | Tiempo desde el arranque del servicio                   |
+
+**Endpoint:** `GET /metrics` — expone las métricas en JSON.
+
+**Middleware:** `src/api/main.py` incluye un middleware HTTP que mide
+la latencia de cada request y alimenta `system_metrics.py` vía
+`record_request()`.
+
+**Limitación conocida:** el estado es por proceso (in-memory). Con
+múltiples workers de uvicorn, cada worker tendría su propio estado.
+Para este proyecto (un solo worker vía Docker) no es un problema.
+
+**Evidencia:** el notebook 04 demuestra las métricas tras ejecutar
+los batches de producción simulados.
+
+### 14.2 O2 — Data Monitoring (Drift)
+
+**Módulo:** `src/monitoring/drift.py`
+
+Detecta cambios en la distribución de las variables de entrada
+comparando `P_reference(X)` contra `P_production(X)` mediante
+**PSI (Population Stability Index)**.
+
+**Umbrales** (justificados en `notebooks/04_monitoring.ipynb`, no
+tratados como leyes universales):
+
+| PSI              | Clasificación |
+| ---------------- | ------------- |
+| `< 0.10`         | OK            |
+| `≥ 0.10, < 0.25` | WARNING       |
+| `≥ 0.25`         | ALERT         |
+
+**Funciones principales:**
+
+- `calcular_psi(referencia, produccion, bins=10)` — PSI con
+  suavizado de Laplace (evita división por cero y log(0)).
+- `calcular_psi_dataframe(df_ref, df_prod, columnas)` — PSI por
+  columna para las 6 variables de gasto.
+- `clasificar_psi(valor_psi)` — clasifica PSI según los umbrales.
+
+### 14.3 O3 — Model Monitoring
+
+**Módulo:** `src/monitoring/model_monitor.py`
+
+Para el problema de clustering, monitorea la **distribución de
+clusters** y la **estabilidad** entre un batch de referencia y uno
+de producción.
+
+**Funciones principales:**
+
+- `obtener_distribucion_clusters(modelo, feature_builder, df)` —
+  predice clusters y retorna el % de registros en cada uno.
+- `comparar_distribuciones(dist_ref, dist_prod, umbral=10.0)` —
+  compara dos distribuciones. Si algún cluster gana o pierde más de
+  **10 puntos porcentuales** de participación, se marca como
+  inestable.
+
+**Justificación del umbral de 10pp:** los 3 clusters del modelo
+están relativamente balanceados (30–38% cada uno, ver notebook 03).
+Un desplazamiento de 10pp movería a algún cluster fuera de ese rango
+típico.
+
+**Nota sobre desplazamiento de centroides:** no se trackea porque
+KMeans no se reentrena en cada batch de producción — los centroides
+solo cambian cuando corre `train.py`, momento que queda trazado en
+MLflow (Sección J).
+
+### 14.4 P — Simulación de Producción y Drift
+
+**Notebook:** `notebooks/04_monitoring.ipynb` (Secciones P y O2/O3)
+
+Se divide conceptualmente el dataset en 4 partes:
+
+```
+REFERENCE → BATCH 1 (sin drift) → BATCH 2 (drift leve) → BATCH 3 (drift fuerte)
+```
+
+| Batch      | Diseño                                              | PSI_max | Clasificación | Modelo estable |
+| ---------- | --------------------------------------------------- | ------- | ------------- | -------------- |
+| BATCH 1    | Bootstrap de REFERENCE (muestra aleatoria)          | 0.042   | OK            | Sí (4.01pp)    |
+| BATCH 2    | +20–40% en Fresh/Milk/Grocery, ruido alto          | 0.131   | WARNING       | Sí (3.35pp)    |
+| BATCH 3    | +120% en Fresh/Frozen/Delicassen, ruido bajo       | 0.571   | ALERT         | No (15.73pp)   |
+
+**Hallazgo clave (Sección O3):** BATCH 2 tiene drift real
+(PSI=0.131, WARNING) pero el modelo se mantiene estable — el drift
+no se traduce en degradación. BATCH 3 sí desestabiliza el modelo:
+el cluster 1 ("retail/abarrotes") pierde casi 16pp de participación
+hacia el cluster 2 ("Horeca diversificado"). Esta progresión
+sustenta el criterio de reentrenamiento de la Sección R.
+
+### 14.5 Q — Simulación de Problemas de Calidad
+
+**Notebook:** `notebooks/04_monitoring.ipynb` (Sección Q)
+
+Se inyectan los 6 tipos de defecto que exige el enunciado sobre una
+copia del dataset de referencia:
+
+| Defecto inyectado                      | Regla que lo detecta                 | Resultado         |
+| -------------------------------------- | ------------------------------------ | ----------------- |
+| Missing values (Fresh, Milk)           | `sin_nulos_obligatorios`             | FAIL — detectado  |
+| Fila duplicada                         | `duplicados_bajo_umbral`             | PASS (0.23% < 2%) |
+| Outlier extremo (Frozen = -500000)     | `sin_gastos_negativos`               | FAIL — detectado  |
+| Tipo incorrecto (texto en numérico)    | `tipos_numericos_validos`            | FAIL — detectado  |
+| Categoría desconocida (Channel = 99)   | `cardinalidad_categorica_valida`     | FAIL — detectado  |
+| Columna extra (columna_falsa)          | `esquema_sin_columnas_extra`         | FAIL — detectado  |
+
+**Ciclo validado:** Detecta → Bloquea/Advierte → Registra. El batch
+contaminado se descarta (`del batch_contaminado`); el dataset original
+nunca se modifica (REFERENCE se mantuvo en 440 filas tras la prueba).
+
+El caso del duplicado (PASS con 0.23%) no es un fallo del sistema: el
+umbral de 2% se justificó con evidencia real (0% de duplicados en el
+histórico) y el detalle del reporte lo refleja explícitamente — el
+sistema "vio" el duplicado pero no lo consideró suficiente para
+bloquear por sí solo.
+
+### 14.6 R — Estrategia de Reentrenamiento
+
+**Módulo:** `src/monitoring/retrain_trigger.py`
+
+El proyecto no implementa un sistema autónomo completo de Continuous
+Training, pero sí la **lógica de decisión** que determinaría cuándo
+reentrenar. La función `evaluar_necesidad_reentrenamiento()` combina
+tres señales:
+
+| Señal                          | Cómo se mide                                       | Umbral                |
+| ------------------------------ | -------------------------------------------------- | --------------------- |
+| **Drift de datos**             | PSI máximo entre las 6 variables de gasto          | > 0.25 (ALERT)        |
+| **Degradación de silhouette**  | Silhouette actual vs. línea base (production_metadata.json) | < 70% de la línea base |
+| **Inestabilidad de composición** | Desplazamiento máximo entre distribuciones de clusters | > 10pp                |
+
+**Decisión:**
+
+| Condición                                    | Decisión      |
+| -------------------------------------------- | ------------- |
+| Drift alto pero modelo estable               | MONITOREAR    |
+| Silhouette bajo O composición inestable      | REENTRENAR    |
+| Ninguna señal                                | OK            |
+
+**¿Por qué drift solo NO implica reentrenar?**
+
+BATCH 2 demuestra que drift real (PSI=0.131, WARNING) no se traduce
+en degradación del modelo (composición estable, silhouette sin caída
+significativa). Reentrenar en cada cambio de distribución
+desperdiciaría cómputo y arriesgaría introducir inestabilidad. Un
+cambio de distribución puede ser legítimo (estacionalidad, promoción
+puntual) y no dañino — solo se actúa cuando hay evidencia de
+degradación real.
+
+**Resultado de la simulación (notebook 04, Sección R):**
+
+| Batch    | PSI    | Silhouette | Composición | Decisión      |
+| -------- | ------ | ---------- | ----------- | ------------- |
+| BATCH 1  | 0.042  | 0.2575     | Estable     | OK            |
+| BATCH 2  | 0.131  | 0.2535     | Estable     | OK            |
+| BATCH 3  | 0.571  | 0.2083     | Inestable   | REENTRENAR    |
+
+BATCH 3 dispara REENTRENAR, pero no por caída de silhouette
+(0.2083, todavía por encima del umbral 0.1796), sino por
+inestabilidad de composición de clusters (15.73pp vs. umbral de
+10pp). Esto confirma que la tercera señal (composición) es necesaria
+y no redundante con el silhouette.
 
 ## 15. Results
 
-_(pendiente — próxima entrega)_
+### 15.1 Métricas del Modelo en Producción
+
+| Métrica | Valor | Interpretación |
+|---------|-------|----------------|
+| **Silhouette Score** | 0.2566 | Separación moderada entre clusters |
+| **Davies-Bouldin Index** | 1.4325 | Índice aceptable (menor = mejor) |
+| **Inertia** | 2841.48 | Cohesión intra-cluster |
+| **Estabilidad (diff semilla)** | 0.0002 | Muy estable (umbral: 0.05) |
+
+### 15.2 Comparación de Configuraciones
+
+Se evaluaron 10 configuraciones (KMeans y Agglomerative Clustering, k=2 a k=6). KMeans domina en todas las métricas para cada valor de k.
+
+| Algoritmo | k | Silhouette | Davies-Bouldin |
+|-----------|---|------------|----------------|
+| KMeans | 2 | 0.3224 | 1.2315 |
+| **KMeans** | **3** | **0.2566** | **1.4325** |
+| KMeans | 4 | 0.2320 | 1.4155 |
+| KMeans | 5 | 0.2344 | 1.3935 |
+| KMeans | 6 | 0.2334 | 1.3506 |
+
+**Selección de k=3:** Aunque k=2 tenía el mejor silhouette (0.322), su cluster dominante era 96% Channel=Horeca — básicamente redescubría una variable conocida. k=3 revela un perfil de negocio genuinamente nuevo (HoreCa diversificado) sin ser redundante con Channel.
+
+### 15.3 Perfiles de Clusters (Datos Originales, Promedio)
+
+| Cluster | Fresh | Milk | Grocery | Frozen | Detergents_Paper | Delicassen | Perfil |
+|---------|-------|------|---------|--------|------------------|------------|--------|
+| **0** | **19,515** | 2,057 | 2,632 | 3,030 | 420 | 763 | HoReCa Fresh |
+| **1** | 6,221 | **9,596** | **14,870** | 1,266 | **6,550** | 1,283 | Retail/Abarrotes |
+| **2** | 11,604 | 4,890 | 4,855 | **5,269** | 891 | **2,554** | HoReCa Diversificado |
+
+**Interpretación de negocio:**
+- **Cluster 0 (HoReCa Fresh — 30.7%):** Clientes con gasto extremadamente alto en Fresh (19,515) y bajo en todo lo demás. Restaurantes y hoteles especializados en alimentos frescos.
+- **Cluster 1 (Retail/Abarrotes — 37.7%):** Dominado por Milk (9,596), Grocery (14,870) y Detergents_Paper (6,550). Tiendas de abarrotes y supermercados.
+- **Cluster 2 (HoReCa Diversificado — 31.6%):** Fresh moderado, pero el gasto más alto en Frozen (5,269) y Delicassen (2,554). Restaurantes con menú diversificado que incluye congelados y delicatessen.
+
+### 15.4 Validación Externas
+
+**Cluster vs Channel:**
+
+| Cluster | Channel=1 (Horeca) | Channel=2 (Retail) |
+|---------|-------------------|-------------------|
+| 0 | **97%** | 3% |
+| 1 | 27% | **73%** |
+| 2 | **88%** | 12% |
+
+Los clusters 0 y 2 son ambos dominados por Horeca, pero representan dos perfiles de compra genuinamente distintos que Channel solo no captura: el especializado en fresco vs. el diversificado.
+
+**Cluster vs Region:** Sin poder discriminatorio — todos los clusters son ~70% Region 3.
+
+### 15.5 Análisis de Componentes Principales
+
+5 componentes retienen el **85.7%** de la varianza:
+
+| Componente | Varianza | Acumulada |
+|------------|----------|-----------|
+| PC1 | 41.8% | 41.8% |
+| PC2 | 16.3% | 58.2% |
+| PC3 | 12.1% | 70.3% |
+| PC4 | 9.2% | 79.5% |
+| PC5 | 6.2% | **85.7%** |
 
 ## 16. Team
 

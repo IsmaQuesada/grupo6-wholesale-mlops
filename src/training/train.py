@@ -20,11 +20,16 @@ Uso como módulo (desde otro script del pipeline, ej. una API o un job de reentr
 import json
 import logging
 import sys
+import tempfile
 import joblib
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import mlflow
 import mlflow.sklearn
+import numpy as np
 import pandas as pd
 from mlflow.tracking import MlflowClient
 from sklearn.cluster import KMeans
@@ -47,9 +52,9 @@ def _repo_root() -> Path:
 
 
 REPO_ROOT = _repo_root()
-sys.path.append(str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT))
 
-from src.data_quality.validate import validar_calidad_datos
+from src.data_quality.validate import validar_calidad_datos, emitir_alerta
 from src.features.build_features import COLS_GASTO, FeatureBuilder
 
 # --------------------------------------------------------------------
@@ -81,6 +86,7 @@ def cargar_datos_validados() -> tuple[pd.DataFrame, str]:
         logger.info("%s | %s: %s", estado, regla, resultado["detalle"])
 
     if not all(r["pass"] for r in reporte.values()):
+        emitir_alerta(reporte, origen="train.py")
         raise RuntimeError("Data Quality Gates falló — no se debe entrenar sobre estos datos.")
 
     return df_raw, data_version
@@ -120,6 +126,38 @@ def entrenar_y_registrar() -> dict:
         mlflow.log_metric("inertia", modelo.inertia_)
         mlflow.sklearn.log_model(modelo, "model")
 
+        # FeatureBuilder también se loguea como artifact de este run (no solo
+        # se exporta a models/ al promover), para que cualquier run del
+        # historial —no solo el promovido a Production— sea reproducible
+        # directamente desde MLflow, sin depender de la copia local en disco.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir) / "feature_builder.joblib"
+            fb.save(tmp_path)
+            mlflow.log_artifact(str(tmp_path), artifact_path="feature_builder")
+
+        # Gráfico de clusters: scatter plot en espacio PCA (2 primeras componentes)
+        # La rúbrica (Sección J) pide "gráficos relevantes" como artifact de MLflow.
+        fig, ax = plt.subplots(figsize=(8, 5))
+        colores = ["#2196F3", "#4CAF50", "#FF9800"]
+        for cluster_id in sorted(set(labels)):
+            mask = labels == cluster_id
+            ax.scatter(
+                X.values[mask, 0], X.values[mask, 1],
+                c=colores[cluster_id % len(colores)],
+                label=f"Cluster {cluster_id}",
+                alpha=0.6, edgecolors="w", linewidth=0.5, s=40,
+            )
+        ax.set_xlabel("PC1")
+        ax.set_ylabel("PC2")
+        ax.set_title(f"K-Means k={N_CLUSTERS} — Silhouette={silhouette:.3f}")
+        ax.legend()
+        fig.tight_layout()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fig_path = Path(tmp_dir) / "cluster_scatter.png"
+            fig.savefig(fig_path, dpi=150)
+            mlflow.log_artifact(str(fig_path), artifact_path="plots")
+        plt.close(fig)
+
         run_id = mlflow.active_run().info.run_id
         logger.info(
             "Run registrado: %s | silhouette=%.3f | davies_bouldin=%.3f",
@@ -156,7 +194,7 @@ def entrenar_y_registrar() -> dict:
             promovido = True
             logger.info("Modelo promovido a Production: %s v%s", MODEL_NAME, model_version.version)
 
-                        # --- Exportación servible (sección M) ---
+            # --- Exportación servible (sección M) ---
             # MLflow gobierna el tracking y el registro de versiones, pero la API
             # de inferencia carga una copia liviana en joblib, para no depender de
             # acceso a la base de datos de MLflow dentro del contenedor Docker.

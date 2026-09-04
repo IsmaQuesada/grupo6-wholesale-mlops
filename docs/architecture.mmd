@@ -1,0 +1,105 @@
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px', 'fontFamily': 'arial', 'primaryColor': '#4472C4', 'primaryTextColor': '#fff', 'lineColor': '#5B9BD5', 'secondaryColor': '#ED7D31', 'tertiaryColor': '#A5A5A5'}}}%%
+
+flowchart TD
+    subgraph DATA["<b>1. DATA LAYER</b>"]
+        A["<b>UCI Repository</b><br/>Wholesale Customers<br/>(ID 292)"]
+    end
+
+    subgraph INGESTION["<b>2. INGESTION LAYER</b>"]
+        B["<b>ingest.py</b><br/>3-tier fallback<br/>ucimlrepo → URL → _fallback/"]
+        C["<b>data/raw/</b><br/>wholesale_customers_raw.csv<br/>ingestion_metadata.json"]
+    end
+
+    subgraph QUALITY["<b>3. DATA QUALITY LAYER</b>"]
+        D["<b>validate.py</b><br/>7 Quality Gates"]
+        E["<b>Quality Gates</b><br/>✓ min_rows ≥ 396<br/>✓ sin_nulos<br/>✓ duplicados < 2%<br/>✓ tipos_numericos<br/>✓ sin_gastos_negativos<br/>✓ cardinalidad_categórica<br/>✓ esquema_sin_extra"]
+        F["<b>logs/quality_alerts.log</b><br/>Alertas persistentes"]
+    end
+
+    subgraph FEATURES["<b>4. FEATURE ENGINEERING LAYER</b>"]
+        G["<b>FeatureBuilder</b><br/>build_features.py"]
+        H["<b>Transformaciones</b><br/>1. log1p (6 variables gasto)<br/>2. Proporciones por categoría<br/>3. Ratio perecible/no-perecible<br/>4. Índice diversificación (Shannon)<br/>5. StandardScaler<br/>6. PCA (5 componentes, 85.7%)"]
+        I["<b>data/processed/</b><br/>wholesale_features.csv"]
+    end
+
+    subgraph TRAINING["<b>5. TRAINING LAYER</b>"]
+        J["<b>train.py</b><br/>KMeans k=3, seed=42"]
+        K["<b>Validación Estabilidad</b><br/>Re-entreno seed=123<br/>diff silhouette < 0.05"]
+    end
+
+    subgraph MLFLOW["<b>6. EXPERIMENT TRACKING</b>"]
+        L["<b>MLflow</b><br/>SQLite (mlflow.db)"]
+        M["<b>Parámetros</b><br/>algorithm, n_clusters<br/>feature_set, random_seed<br/>data_version"]
+        N["<b>Métricas</b><br/>silhouette=0.257<br/>davies_bouldin=1.433<br/>inertia=2841.5<br/>estabilidad=0.0002"]
+        O["<b>Artefactos</b><br/>modelo, FeatureBuilder<br/>cluster_scatter.png"]
+    end
+
+    subgraph REGISTRY["<b>7. MODEL REGISTRY</b>"]
+        P["<b>wholesale-clustering-grupo6</b><br/>Experiment → Candidate<br/>→ Validation → Production"]
+        Q["<b>models/</b><br/>kmeans_production.joblib<br/>feature_builder.joblib<br/>production_metadata.json"]
+    end
+
+    subgraph SERVING["<b>8. SERVING LAYER</b>"]
+        R["<b>Docker</b><br/>python:3.11-slim<br/>7 dependencias"]
+        S["<b>FastAPI API</b><br/>POST /predict<br/>GET /health<br/>GET /metrics"]
+        T["<b>Predicción</b><br/>cluster + distance_to_centroid<br/>+ model_version"]
+    end
+
+    subgraph MONITORING["<b>9. MONITORING LAYER</b>"]
+        U["<b>O1: System</b><br/>Latency, Throughput<br/>Error Rate, Availability"]
+        V["<b>O2: Data Drift</b><br/>PSI (6 variables)<br/>OK < 0.10 | WARNING < 0.25 | ALERT ≥ 0.25"]
+        W["<b>O3: Model</b><br/>Distribución clusters<br/>Umbral: 10pp"]
+        X["<b>R: Retrain</b><br/>3 señales: drift + silhouette + composición"]
+    end
+
+    subgraph ALERTS["<b>10. ALERTS</b>"]
+        Y["<b>Decisiones</b><br/>OK → No acción<br/>MONITOREAR → Vigilar<br/>REENTRENAR → Re-entrenar"]
+    end
+
+    A -->|"descarga"| B
+    B -->|"genera"| C
+    C -->|"valida"| D
+    D -->|"evalúa"| E
+    D -->|"falla →"| F
+    C -->|"procesa"| G
+    G -->|"aplica"| H
+    H -->|"genera"| I
+    I -->|"entrena"| J
+    J -->|"valida"| K
+    J -->|"registra"| L
+    L -->|"params"| M
+    L -->|"metrics"| N
+    L -->|"artifacts"| O
+    J -->|"promueve"| P
+    P -->|"exporta"| Q
+    Q -->|"carga"| R
+    R -->|"levanta"| S
+    S -->|"responde"| T
+    S -->|"middleware"| U
+    T -->|"datos"| V
+    T -->|"modelo"| W
+    V -->|"evalúa"| X
+    W -->|"evalúa"| X
+    X -->|"decide"| Y
+
+    classDef dataLayer fill:#4472C4,stroke:#2F5597,color:#fff
+    classDef ingestLayer fill:#5B9BD5,stroke:#2F5597,color:#fff
+    classDef qualityLayer fill:#ED7D31,stroke:#C55A11,color:#fff
+    classDef featureLayer fill:#70AD47,stroke:#548235,color:#fff
+    classDef trainLayer fill:#FFC000,stroke:#BF8F00,color:#000
+    classDef mlflowLayer fill:#A855F7,stroke:#7E22CE,color:#fff
+    classDef registryLayer fill:#EF4444,stroke:#B91C1C,color:#fff
+    classDef servingLayer fill:#06B6D4,stroke:#0891B2,color:#fff
+    classDef monitorLayer fill:#F97316,stroke:#EA580C,color:#fff
+    classDef alertLayer fill:#EC4899,stroke:#BE185D,color:#fff
+
+    class A dataLayer
+    class B,C ingestLayer
+    class D,E,F qualityLayer
+    class G,H,I featureLayer
+    class J,K trainLayer
+    class L,M,N,O mlflowLayer
+    class P,Q registryLayer
+    class R,S,T servingLayer
+    class U,V,W,X monitorLayer
+    class Y alertLayer
